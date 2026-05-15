@@ -1,6 +1,12 @@
 import { generateIssue } from "./generator.js";
 
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
+const HISTORY_DATA_KEYS = {
+  timeline: "data:v1:ming:timeline",
+  disasters: "data:v1:ming:disasters",
+};
+
+const historyDataPromises = new WeakMap();
 
 const JSON_HEADERS = {
   "content-type": "application/json; charset=utf-8",
@@ -48,13 +54,42 @@ function invalidDatePayload(date) {
   };
 }
 
+function unavailablePayload() {
+  return {
+    ok: false,
+    error: "history_data_unavailable",
+    message: "Historical source data is unavailable",
+  };
+}
+
 function issueCacheKey(issue) {
   return `issue:${CACHE_VERSION}:${issue.period.start_year}:${issue.period.start_month}`;
 }
 
-async function cachedIssue(env, date) {
-  const issue = generateIssue(date);
+async function loadHistoryData(env) {
   const cache = env?.ISSUE_CACHE;
+  if (!cache) throw new Error("History data unavailable");
+  let historyDataPromise = historyDataPromises.get(cache);
+  if (!historyDataPromise) {
+    historyDataPromise = Promise.all([
+      cache.get(HISTORY_DATA_KEYS.timeline, "json"),
+      cache.get(HISTORY_DATA_KEYS.disasters, "json"),
+    ]).then(([timeline, disasters]) => {
+      if (!Array.isArray(timeline) || !Array.isArray(disasters)) {
+        throw new Error("History data unavailable");
+      }
+      return { timeline, disasters };
+    });
+    historyDataPromise.catch(() => historyDataPromises.delete(cache));
+    historyDataPromises.set(cache, historyDataPromise);
+  }
+  return historyDataPromise;
+}
+
+async function cachedIssue(env, date) {
+  const cache = env?.ISSUE_CACHE;
+  const historyData = await loadHistoryData(env);
+  const issue = generateIssue(date, historyData);
   if (!cache) return issue;
 
   const key = issueCacheKey(issue);
@@ -67,7 +102,8 @@ async function cachedIssue(env, date) {
 
 async function preGenerateCurrentIssue(env, scheduledTime) {
   const date = scheduledTime ? new Date(scheduledTime).toISOString().slice(0, 10) : undefined;
-  const issue = generateIssue(date);
+  const historyData = await loadHistoryData(env);
+  const issue = generateIssue(date, historyData);
   const cache = env?.ISSUE_CACHE;
   if (cache) await cache.put(issueCacheKey(issue), JSON.stringify(issue));
   return issue;
@@ -89,8 +125,15 @@ export default {
     }
 
     if (url.pathname === "/" || url.pathname === "/health") {
-      const issue = await cachedIssue(env);
-      return jsonResponse(healthPayload(issue));
+      try {
+        const issue = await cachedIssue(env);
+        return jsonResponse(healthPayload(issue));
+      } catch (error) {
+        if (error instanceof Error && error.message === "History data unavailable") {
+          return jsonResponse(unavailablePayload(), { status: 503, headers: { "cache-control": "no-store" } });
+        }
+        throw error;
+      }
     }
 
     if (url.pathname === "/api/issue" || url.pathname === "/api/issue/latest") {
@@ -100,6 +143,9 @@ export default {
       } catch (error) {
         if (error instanceof Error && error.message.startsWith("Invalid date:")) {
           return jsonResponse(invalidDatePayload(date || ""), { status: 400, headers: { "cache-control": "no-store" } });
+        }
+        if (error instanceof Error && error.message === "History data unavailable") {
+          return jsonResponse(unavailablePayload(), { status: 503, headers: { "cache-control": "no-store" } });
         }
         throw error;
       }

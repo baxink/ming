@@ -1,6 +1,3 @@
-import timeline from "./ming-timeline.json" with { type: "json" };
-import disasters from "./ming-disasters.json" with { type: "json" };
-
 const TIMEZONE_OFFSET_MS = 8 * 60 * 60 * 1000;
 const EPOCH_DATE = "2026-05-15";
 const EPOCH_MING_YEAR = 1368;
@@ -280,7 +277,7 @@ function eraContext(year) {
   };
 }
 
-function eventsInPeriod(period) {
+function eventsInPeriod(period, timeline) {
   return timeline
     .filter((event) => {
       const em = event.month || 1;
@@ -295,7 +292,7 @@ function disasterMentionsPeriod(disaster, startMonth) {
   return [0, 1, 2].some((offset) => text.includes(monthName(startMonth + offset)));
 }
 
-function disastersInPeriod(period) {
+function disastersInPeriod(period, disasters) {
   let seq = 1;
   return disasters
     .filter((disaster) => disaster.year === period.start_year && disasterMentionsPeriod(disaster, period.start_month))
@@ -417,13 +414,16 @@ function buildSections(articles) {
   return Object.fromEntries(Object.entries(sections).filter(([, items]) => items.length));
 }
 
-export function generateIssue(dateString) {
+export function generateIssue(dateString, historyData) {
+  if (!historyData?.timeline || !historyData?.disasters) {
+    throw new Error("History data unavailable");
+  }
   const realDate = parseRealDate(dateString);
   const [year, month] = realToMing(realDate);
   const [reignTitle, reignYear, emperor] = getReignData(year);
   const period = buildPeriod(year, month);
-  const timelineArticles = eventsInPeriod(period);
-  const disasterArticles = disastersInPeriod(period);
+  const timelineArticles = eventsInPeriod(period, historyData.timeline);
+  const disasterArticles = disastersInPeriod(period, historyData.disasters);
   const base = dedupeArticles([...timelineArticles, ...disasterArticles, ...backgroundArticles(period, timelineArticles)]);
   const existingSections = new Set(base.map((art) => art.section));
   let allArticles = dedupeArticles([...base, ...supplementaryArticles(period, existingSections)]);
