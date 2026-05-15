@@ -1,0 +1,10 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.env
+.venv/
+node_modules/
+cloudflare/worker/node_modules/
+data/raw/
+参考书籍/
+*.sqlite3*

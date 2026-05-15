@@ -1,0 +1,12 @@
+{
+  "name": "ming-post-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-json-modules --test test/*.test.mjs",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

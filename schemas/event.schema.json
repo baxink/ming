@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ming.sim/schemas/event.schema.json",
+  "title": "明代事件",
+  "description": "明代历史事件与模拟事件的数据模型",
+  "type": "object",
+  "required": ["id", "title", "event_type", "date"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "唯一标识符"
+    },
+    "title": {
+      "type": "string",
+      "description": "事件标题"
+    },
+    "description": {
+      "type": "string",
+      "description": "事件描述"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "disaster_flood", "disaster_drought", "disaster_locust",
+        "disaster_earthquake", "disaster_epidemic", "disaster_famine",
+        "rebellion", "banditry", "border_conflict", "battle",
+        "policy_enactment", "policy_reform", "court_purge",
+        "impeachment", "faction_strife", "imperial_ritual",
+        "examination", "appointment", "dismissal", "death",
+        "diplomatic_mission", "economic_crisis", "fiscal_reform",
+        "construction", "river_works", "piracy", "pirate_raid"
+      ]
+    },
+    "date": {
+      "type": "object",
+      "required": ["year"],
+      "properties": {
+        "year": { "type": "integer", "description": "公历年份" },
+        "month": { "type": "integer", "minimum": 1, "maximum": 13, "description": "月份（13=闰月）" },
+        "day": { "type": "integer", "minimum": 1, "maximum": 30 },
+        "reign_title": { "type": "string", "description": "年号" },
+        "reign_year": { "type": "integer", "description": "年号纪年" }
+      }
+    },
+    "location": {
+      "type": "object",
+      "properties": {
+        "province": { "type": "string" },
+        "prefecture": { "type": "string" },
+        "county": { "type": "string" },
+        "region_id": { "type": "string", "description": "关联 region schema 的 id" },
+        "point": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        }
+      }
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["critical", "major", "moderate", "minor"],
+      "description": "事件严重程度"
+    },
+    "scope": {
+      "type": "string",
+      "enum": ["local", "prefectural", "provincial", "national"],
+      "description": "影响范围"
+    },
+    "involved_persons": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "person_id": { "type": "string" },
+          "role": { "type": "string", "description": "参与角色" }
+        }
+      }
+    },
+    "involved_institutions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "涉及机构 ID 列表"
+    },
+    "causes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "事件原因"
+    },
+    "consequences": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": { "type": "string" },
+          "type": { "type": "string", "enum": ["economic", "military", "political", "social", "demographic"] },
+          "magnitude": { "type": "number", "minimum": -1, "maximum": 1 }
+        }
+      }
+    },
+    "related_policies": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "关联的政策 ID 列表"
+    },
+    "primary_sources": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "原始史料出处"
+    },
+    "is_historical": {
+      "type": "boolean",
+      "description": "是否为真实历史事件"
+    },
+    "historical_confidence": {
+      "type": "string",
+      "enum": ["direct_evidence", "scholarly_consensus", "reasonable_inference"]
+    }
+  }
+}

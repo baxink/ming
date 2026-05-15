@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ming.sim/schemas/office.schema.json",
+  "title": "明代官职与机构",
+  "description": "明代中央与地方官职、机构的数据模型",
+  "type": "object",
+  "required": ["id", "name", "type", "rank"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "唯一标识符"
+    },
+    "name": {
+      "type": "string",
+      "description": "官职或机构名称"
+    },
+    "full_name": {
+      "type": "string",
+      "description": "完整名称（含衔称）"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "central_cabinet", "central_six_ministries", "central_censorate",
+        "central_hanlin", "central_imperial_guards", "central_eunuch",
+        "provincial", "prefectural", "county", "military_wei",
+        "military_border", "salt", "grain_transport", "surveillance"
+      ],
+      "description": "机构类型"
+    },
+    "tier": {
+      "type": "string",
+      "enum": ["central", "provincial", "prefectural", "county", "sub_county"],
+      "description": "行政层级"
+    },
+    "rank": {
+      "type": "string",
+      "enum": [
+        "正一品", "从一品", "正二品", "从二品", "正三品", "从三品",
+        "正四品", "从四品", "正五品", "从五品", "正六品", "从六品",
+        "正七品", "从七品", "正八品", "从八品", "正九品", "从九品", "未入流"
+      ]
+    },
+    "quota": {
+      "type": "integer",
+      "description": "额定员数"
+    },
+    "parent_office_id": {
+      "type": "string",
+      "description": "上级机构 ID"
+    },
+    "sub_offices": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "下属机构 ID 列表"
+    },
+    "responsibilities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "人事任免", "考课", "铨选", "封爵",
+          "赋税征收", "仓储管理", "漕运", "盐政", "钱法",
+          "科举", "学校", "祭祀", "朝贡", "礼制",
+          "军务", "边镇", "武选", "军器", "驿传",
+          "刑名", "狱讼", "秋审", "朝审",
+          "营造", "河工", "屯田", "虞衡",
+          "谏诤", "封驳", "弹劾", "巡按",
+          "票拟", "批红", "传旨", "掌印",
+          "刑侦", "缉捕", "诏狱",
+          "教化", "治安", "征收", "审案",
+          "抚民", "督师", "提学", "清军"
+        ]
+      }
+    },
+    "permissions": {
+      "type": "object",
+      "description": "权限定义",
+      "properties": {
+        "can_issue_policy": { "type": "boolean", "description": "可否颁布政令" },
+        "can_appoint": { "type": "boolean", "description": "可否任免官员" },
+        "can_impeach": { "type": "boolean", "description": "可否弹劾" },
+        "can_command_troops": { "type": "boolean", "description": "可否调兵" },
+        "can_levy_tax": { "type": "boolean", "description": "可否征赋" },
+        "can_adjudicate": { "type": "boolean", "description": "可否审案" },
+        "can_memorialize": { "type": "boolean", "description": "可否上疏" },
+        "can_approve_execution": { "type": "boolean", "description": "可否批红处决" }
+      }
+    },
+    "reporting_to": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "汇报对象 ID 列表"
+    },
+    "jurisdiction": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "管辖区域 ID 列表"
+    },
+    "typical_incumbents": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "历史上担任此职的代表人物 ID"
+    },
+    "period_active": {
+      "type": "object",
+      "properties": {
+        "from_year": { "type": "integer" },
+        "to_year": { "type": "integer" }
+      },
+      "description": "该官职/机构在明代存续的年份范围"
+    },
+    "sources": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "史料来源"
+    }
+  }
+}

@@ -1,0 +1,134 @@
+{
+  "source": "zh.wikipedia.org/wiki/明朝",
+  "extracted_at": "2026-05-13",
+  "capital_cities": [
+    "应天府(南京)",
+    "顺天府(北京)"
+  ],
+  "provinces": [
+    {
+      "name": "陕西",
+      "id": "sheng_shaanxi"
+    },
+    {
+      "name": "山西",
+      "id": "sheng_shanxi"
+    },
+    {
+      "name": "山东",
+      "id": "sheng_shandong"
+    },
+    {
+      "name": "河南",
+      "id": "sheng_henan"
+    },
+    {
+      "name": "浙江",
+      "id": "sheng_zhejiang"
+    },
+    {
+      "name": "江西",
+      "id": "sheng_jiangxi"
+    },
+    {
+      "name": "湖广",
+      "id": "sheng_huguang"
+    },
+    {
+      "name": "四川",
+      "id": "sheng_sichuan"
+    },
+    {
+      "name": "广东",
+      "id": "sheng_guangdong"
+    },
+    {
+      "name": "福建",
+      "id": "sheng_fujian"
+    },
+    {
+      "name": "广西",
+      "id": "sheng_guangxi"
+    },
+    {
+      "name": "贵州",
+      "id": "sheng_guizhou"
+    },
+    {
+      "name": "云南",
+      "id": "sheng_yunnan"
+    }
+  ],
+  "two_capitals": [
+    {
+      "name": "南直隶",
+      "id": "jing_nan",
+      "capital": "应天府(南京)"
+    },
+    {
+      "name": "北直隶",
+      "id": "jing_bei",
+      "capital": "顺天府(北京)"
+    }
+  ],
+  "six_ministries": [
+    "吏部",
+    "户部",
+    "礼部",
+    "兵部",
+    "刑部",
+    "工部"
+  ],
+  "three_upper": [
+    "吏部",
+    "户部",
+    "兵部"
+  ],
+  "administrative_levels": [
+    "省(布政使司)",
+    "府",
+    "州",
+    "县"
+  ],
+  "military_structure": {
+    "wei_suo": "卫所制",
+    "nine_garrisons": [
+      "辽东镇",
+      "蓟州镇",
+      "宣府镇",
+      "大同镇",
+      "山西镇",
+      "延绥镇",
+      "宁夏镇",
+      "固原镇",
+      "甘肃镇"
+    ],
+    "five_military_commissions": "五军都督府",
+    "garrison_types": [
+      "都司",
+      "行都司",
+      "留守司"
+    ]
+  },
+  "key_reforms": [
+    {
+      "name": "一条鞭法",
+      "year": 1581,
+      "description": "赋役合并折银征收"
+    },
+    {
+      "name": "考成法",
+      "year": 1573,
+      "description": "考核官吏行政效率"
+    },
+    {
+      "name": "清丈田亩",
+      "year": 1578,
+      "description": "清查全国隐田"
+    }
+  ],
+  "commercial_tax": {
+    "弘治年间": "46,180,090 贯",
+    "嘉靖年间": "52,068,109 贯"
+  }
+}

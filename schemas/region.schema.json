@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ming.sim/schemas/region.schema.json",
+  "title": "明代行政区划",
+  "description": "明代行政区划与地理区域数据模型",
+  "type": "object",
+  "required": ["id", "name", "tier", "parent_id"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "唯一标识符"
+    },
+    "name": {
+      "type": "string",
+      "description": "区域名称"
+    },
+    "full_name": {
+      "type": "string",
+      "description": "完整名称（含行政通名）"
+    },
+    "tier": {
+      "type": "string",
+      "enum": ["jing", "sheng", "fu", "zhou", "xian"],
+      "description": "行政层级：京师/省/府/州/县"
+    },
+    "parent_id": {
+      "type": "string",
+      "description": "上级区域 ID（根节点为 null）"
+    },
+    "sub_regions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "下级区域 ID 列表"
+    },
+    "capital_city": {
+      "type": "string",
+      "description": "治所城市名"
+    },
+    "coordinates": {
+      "type": "object",
+      "properties": {
+        "lat": { "type": "number", "minimum": 18, "maximum": 55 },
+        "lng": { "type": "number", "minimum": 73, "maximum": 135 },
+        "source": { "type": "string", "enum": ["CHGIS", "estimated", "manual"] }
+      }
+    },
+    "border_points": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "lat": { "type": "number" },
+          "lng": { "type": "number" }
+        }
+      },
+      "description": "区域边界坐标（用于地图绘制）"
+    },
+    "population": {
+      "type": "object",
+      "properties": {
+        "households": { "type": "integer", "description": "户数" },
+        "adult_males": { "type": "integer", "description": "丁口" },
+        "total_estimated": { "type": "integer", "description": "总人口估计" },
+        "census_year": { "type": "integer" },
+        "source": { "type": "string" }
+      }
+    },
+    "economy": {
+      "type": "object",
+      "properties": {
+        "primary_products": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "主要物产（稻、麦、桑、棉、茶、盐、矿等）"
+        },
+        "tax_quota_grain": { "type": "number", "description": "田赋定额（石）" },
+        "tax_quota_silver": { "type": "number", "description": "折银定额（两）" },
+        "commercial_tax": { "type": "number", "description": "商税定额（两）" },
+        "market_towns": { "type": "integer", "description": "市镇数量" },
+        "customs_stations": { "type": "array", "items": { "type": "string" }, "description": "钞关/税关" }
+      }
+    },
+    "military": {
+      "type": "object",
+      "properties": {
+        "wei_garrisons": { "type": "array", "items": { "type": "string" }, "description": "辖区卫所 ID 列表" },
+        "border_defense_level": {
+          "type": "string",
+          "enum": ["core", "interior", "border", "frontier"],
+          "description": "边防层级"
+        },
+        "strategic_sites": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "关隘、要地"
+        }
+      }
+    },
+    "infrastructure": {
+      "type": "object",
+      "properties": {
+        "canal_access": { "type": "boolean", "description": "是否通漕运" },
+        "postal_stations": { "type": "integer", "description": "驿站数量" },
+        "grain_warehouses": { "type": "array", "items": { "type": "string" }, "description": "粮仓 ID 列表" },
+        "major_roads": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "to_region_id": { "type": "string" },
+              "type": { "type": "string", "enum": ["official_road", "postal_road", "canal", "sea_route", "mountain_pass"] },
+              "distance_km": { "type": "number" },
+              "travel_days": { "type": "integer" }
+            }
+          }
+        }
+      }
+    },
+    "academies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "type": { "type": "string", "enum": ["官学", "书院", "社学", "义学"] },
+          "founded_year": { "type": "integer" }
+        }
+      },
+      "description": "学校与书院"
+    },
+    "notable_features": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "地方特色（商帮活跃、宗族强盛、民风彪悍、文化昌盛等）"
+    },
+    "climate_zone": {
+      "type": "string",
+      "enum": ["north_china_plain", "yangtze_delta", "southeast_coastal", "central_plains", "southwest_mountain", "northwest_arid"],
+      "description": "气候地理分区"
+    },
+    "period_valid": {
+      "type": "object",
+      "properties": {
+        "from_year": { "type": "integer" },
+        "to_year": { "type": "integer" },
+        "name_changes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "from_year": { "type": "integer" },
+              "to_year": { "type": "integer" }
+            }
+          }
+        }
+      },
+      "description": "行政沿革（何时设立/裁撤/改名）"
+    },
+    "sources": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "issue.schema.json",
+  "title": "Ming Post Issue",
+  "type": "object",
+  "required": ["date", "period", "articles", "sections"],
+  "definitions": {
+    "article": {
+      "type": "object",
+      "required": ["id", "section", "headline"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "section": {"type": "string", "minLength": 1},
+        "headline": {"type": "string", "minLength": 1},
+        "subhead": {"type": "string"},
+        "dateline": {"type": "string"},
+        "byline": {"type": "string"},
+        "body": {"type": "string"},
+        "event_type": {"type": "string"},
+        "severity": {"type": "string"},
+        "location": {"type": "string"},
+        "category": {"type": "string"},
+        "sources": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "source_date": {"type": "string"}
+      },
+      "additionalProperties": true
+    }
+  },
+  "properties": {
+    "date": {
+      "type": "object",
+      "required": ["real_date", "ming_reign", "ming_year", "ming_month", "emperor", "season"],
+      "properties": {
+        "real_date": {"type": "string"},
+        "ming_reign": {"type": "string"},
+        "ming_year": {"type": "integer"},
+        "ming_month": {"type": "integer"},
+        "emperor": {"type": "string"},
+        "season": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "period": {
+      "type": "object",
+      "required": ["issue_number", "label", "start_label", "end_label", "start_year", "start_month", "end_year", "end_month"],
+      "properties": {
+        "issue_number": {"type": "integer"},
+        "label": {"type": "string"},
+        "start_label": {"type": "string"},
+        "end_label": {"type": "string"},
+        "start_year": {"type": "integer"},
+        "start_month": {"type": "integer"},
+        "end_year": {"type": "integer"},
+        "end_month": {"type": "integer"}
+      },
+      "additionalProperties": true
+    },
+    "lead": {
+      "anyOf": [
+        {"$ref": "#/definitions/article"},
+        {"type": "null"}
+      ]
+    },
+    "articles": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/article"}
+    },
+    "sections": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {"$ref": "#/definitions/article"}
+      }
+    },
+    "editorial_note": {"type": "string"}
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,800 @@
+[
+  {
+    "id": "TL1368_001", "year": 1368, "month": 1, "reign": "洪武", "reign_year": 1,
+    "title": "朱元璋称帝，建元洪武",
+    "description": "正月，朱元璋在应天府（南京）即皇帝位，国号大明，建元洪武，立妃马氏为皇后，世子朱标为太子。李善长、徐达为左右丞相。",
+    "event_type": "imperial_ritual", "scope": "national", "severity": "critical",
+    "location": {"province": "南直隶", "city": "应天府"},
+    "involved_persons": [
+      {"person_id": 30148, "name": "朱元璋", "role": "皇帝"},
+      {"person_id": null, "name": "李善长", "role": "左丞相"},
+      {"person_id": null, "name": "徐达", "role": "右丞相"}
+    ],
+    "causes": ["元末农民起义", "北伐灭元"], "consequences": ["明朝建立"],
+    "category": "dynasty"
+  },
+  {
+    "id": "TL1368_002", "year": 1368, "month": 8, "reign": "洪武", "reign_year": 1,
+    "title": "明军攻占大都，元朝灭亡",
+    "description": "八月，徐达率军攻入元大都（北京），元顺帝北逃上都。明朝完成对元廷的军事胜利，但蒙古势力仍盘踞北方草原。",
+    "event_type": "battle", "scope": "national", "severity": "critical",
+    "location": {"province": "北直隶", "city": "大都"},
+    "involved_persons": [{"person_id": null, "name": "徐达", "role": "统帅"}],
+    "causes": ["北伐灭元"], "consequences": ["元朝灭亡", "北元残余势力存续"],
+    "category": "military"
+  },
+  {
+    "id": "TL1370_001", "year": 1370, "month": null, "reign": "洪武", "reign_year": 3,
+    "title": "开科举，诏天下府州县学",
+    "description": "诏开科举取士，设府、州、县学。确立明代科举制度的基本框架。但同时强调'中外文臣皆由科举而进，非科举者毋得与官'，科举逐渐成为入仕正途。",
+    "event_type": "examination", "scope": "national", "severity": "major",
+    "involved_persons": [{"person_id": 30148, "name": "朱元璋", "role": "下诏"}],
+    "causes": ["需要培养和选拔文官队伍"], "consequences": ["科举制度确立"],
+    "category": "institutional"
+  },
+  {
+    "id": "TL1376_001", "year": 1376, "month": null, "reign": "洪武", "reign_year": 9,
+    "title": "改行省为承宣布政使司",
+    "description": "改行中书省为承宣布政使司，设布政使、按察使、都指挥使三司分掌民政、司法、军事。此改革将元代大区行省权力拆分，防止地方坐大，是明代地方制度奠基之作。",
+    "event_type": "policy_reform", "scope": "national", "severity": "major",
+    "location": {"province": null, "city": null},
+    "involved_persons": [{"person_id": 30148, "name": "朱元璋", "role": "决策"}],
+    "causes": ["防止地方分权过大"], "consequences": ["地方三司分权制度确立"],
+    "category": "institutional"
+  },
+  {
+    "id": "TL1380_001", "year": 1380, "month": 1, "reign": "洪武", "reign_year": 13,
+    "title": "胡惟庸案发",
+    "description": "丞相胡惟庸以'谋逆'罪被诛。朱元璋借此彻底废除中书省和丞相制度，六部直接向皇帝负责。此案牵连甚广，前后诛杀三万余人，开明代大屠杀之先例。此后皇帝集大权于一身。",
+    "event_type": "court_purge", "scope": "national", "severity": "critical",
+    "location": {"province": "南直隶", "city": "应天府"},
+    "involved_persons": [
+      {"person_id": 30148, "name": "朱元璋", "role": "皇帝"},
+      {"person_id": null, "name": "胡惟庸", "role": "被杀丞相"}
+    ],
+    "causes": ["宰相权力过大", "朱元璋猜忌功臣"], "consequences": ["废除丞相制度", "皇权空前集中", "大杀功臣拉开序幕"],
+    "category": "political_purge"
+  },
+  {
+    "id": "TL1380_002", "year": 1380, "month": null, "reign": "洪武", "reign_year": 13,
+    "title": "废丞相，六部直属于皇帝",
+    "description": "罢中书省，废丞相等官。提高六部品秩，各部尚书直接向皇帝负责。大都督府改为五军都督府，分掌军权。从此'中外章奏皆上彻御览，每断大事，决大疑，辄召阁臣面议'——但此时的阁臣仅为顾问，无决策权。",
+    "event_type": "policy_reform", "scope": "national", "severity": "critical",
+    "involved_persons": [{"person_id": 30148, "name": "朱元璋", "role": "决策"}],
+    "causes": ["胡惟庸案", "朱元璋对宰相制度的不信任"],
+    "consequences": ["明代中央官制框架确定", "皇帝工作量大幅增加"],
+    "category": "institutional"
+  },
+  {
+    "id": "TL1381_001", "year": 1381, "month": null, "reign": "洪武", "reign_year": 14,
+    "title": "编造赋役黄册",
+    "description": "命天下郡县编造赋役黄册，详载各户丁口、事产。黄册十年一造，是明代赋役征收和户籍管理的根本依据，与鱼鳞图册并称明代两大册籍。",
+    "event_type": "fiscal_reform", "scope": "national", "severity": "major",
+    "involved_persons": [{"person_id": 30148, "name": "朱元璋", "role": "决策"}],
+    "causes": ["清理户籍", "确立赋税基础"], "consequences": ["黄册制度确立"],
+    "category": "fiscal"
+  },
+  {
+    "id": "TL1382_001", "year": 1382, "month": null, "reign": "洪武", "reign_year": 15,
+    "title": "设立锦衣卫",
+    "description": "设锦衣卫亲军指挥使司，掌侍卫、仪仗及侦缉、刑狱。锦衣卫有独立于三法司（刑部、大理寺、都察院）的司法权，成为皇帝直接掌控的特务机构。",
+    "event_type": "policy_enactment", "scope": "national", "severity": "major",
+    "involved_persons": [{"person_id": 30148, "name": "朱元璋", "role": "设立"}],
+    "causes": ["加强对百官和民间的控制"], "consequences": ["特务政治制度化"],
+    "category": "institutional"
+  },
+  {
+    "id": "TL1387_001", "year": 1387, "month": null, "reign": "洪武", "reign_year": 20,
+    "title": "鱼鳞图册编成",
+    "description": "命国子生分行州县，丈量田亩，编定鱼鳞图册。鱼鳞图册详载每块田地的形制、面积、四至、业主，与黄册配合使用，是明代土地管理和赋税征收的基础。",
+    "event_type": "fiscal_reform", "scope": "national", "severity": "major",
+    "involved_persons": [{"person_id": 30148, "name": "朱元璋", "role": "决策"}],
+    "causes": ["清理田土", "防止隐田逃税"], "consequences": ["土地管理制度完善"],
+    "category": "fiscal"
+  },
+  {
+    "id": "TL1390_001", "year": 1390, "month": null, "reign": "洪武", "reign_year": 23,
+    "title": "李善长案",
+    "description": "太师、韩国公李善长因牵涉胡惟庸案被赐死，妻女弟侄七十余人一并处死。此时距胡惟庸案已十年，说明清洗仍在持续。",
+    "event_type": "court_purge", "scope": "national", "severity": "major",
+    "involved_persons": [{"person_id": 30148, "name": "朱元璋", "role": "皇帝"}, {"person_id": null, "name": "李善长", "role": "被诛"}],
+    "causes": ["猜忌功臣", "巩固皇权"], "consequences": ["开国元勋进一步被清洗"],
+    "category": "political_purge"
+  },
+  {
+    "id": "TL1393_001", "year": 1393, "month": null, "reign": "洪武", "reign_year": 26,
+    "title": "蓝玉案",
+    "description": "凉国公蓝玉以'谋反'罪被诛，株连者一万五千余人。蓝玉是明朝开国最后一位能战的大将，此案后'元功宿将相继尽矣'。朱元璋借此彻底清洗武将集团。",
+    "event_type": "court_purge", "scope": "national", "severity": "critical",
+    "involved_persons": [{"person_id": 30148, "name": "朱元璋", "role": "皇帝"}, {"person_id": null, "name": "蓝玉", "role": "被诛"}],
+    "causes": ["猜忌武将"], "consequences": ["开国武将基本被清洗殆尽"],
+    "category": "political_purge"
+  },
+  {
+    "id": "TL1398_001", "year": 1398, "month": 6, "reign": "洪武", "reign_year": 31,
+    "title": "朱元璋驾崩，朱允炆即位",
+    "description": "朱元璋病逝，皇太孙朱允炆即位，是为建文帝。朱允炆即位后立即起用齐泰、黄子澄等文臣，开始推行削藩政策。",
+    "event_type": "imperial_ritual", "scope": "national", "severity": "critical",
+    "involved_persons": [{"person_id": 30148, "name": "朱元璋", "role": "驾崩"}, {"person_id": null, "name": "朱允炆", "role": "即位"}],
+    "causes": [], "consequences": ["建文改制开始", "削藩引发靖难之役"],
+    "category": "dynasty"
+  },
+  {
+    "id": "TL1399_001", "year": 1399, "month": 7, "reign": "建文", "reign_year": 1,
+    "title": "靖难之役爆发",
+    "description": "燕王朱棣以'清君侧'为名，在北平起兵，靖难之役爆发。建文帝先后派耿炳文、李景隆为大将军北伐，均被朱棣击败。战争持续三年，波及华北各省。",
+    "event_type": "rebellion", "scope": "national", "severity": "critical",
+    "location": {"province": "北直隶", "city": "北平"},
+    "involved_persons": [
+      {"person_id": null, "name": "朱棣", "role": "燕王"},
+      {"person_id": null, "name": "朱允炆", "role": "建文帝"}
+    ],
+    "causes": ["建文帝削藩", "朱棣不满削藩政策"], "consequences": ["内战爆发", "华北战乱", "明朝政治中心转移"],
+    "category": "military"
+  },
+  {
+    "id": "TL1402_001", "year": 1402, "month": 7, "reign": "建文", "reign_year": 4,
+    "title": "朱棣攻入南京，即位为帝",
+    "description": "朱棣攻破南京金川门，建文帝失踪（一说焚死、一说出逃为僧）。朱棣即皇帝位，改元永乐。随后展开对建文旧臣的大规模清算，方孝孺被灭十族。",
+    "event_type": "rebellion", "scope": "national", "severity": "critical",
+    "location": {"province": "南直隶", "city": "应天府"},
+    "involved_persons": [
+      {"person_id": null, "name": "朱棣", "role": "夺取皇位"},
+      {"person_id": null, "name": "方孝孺", "role": "被诛"}
+    ],
+    "causes": ["靖难之役胜利"], "consequences": ["永乐朝开始", "政治清洗", "迁都北京计划启动"],
+    "category": "dynasty"
+  },
+  {
+    "id": "TL1405_001", "year": 1405, "month": 7, "reign": "永乐", "reign_year": 3,
+    "title": "郑和首次下西洋",
+    "description": "郑和率二万七千余人，乘宝船六十二艘，从苏州刘家港出发。首次远航至占城、爪哇、苏门答腊、锡兰、古里等地。此后至1433年共七次远航，最远到达非洲东海岸。",
+    "event_type": "diplomatic_mission", "scope": "national", "severity": "major",
+    "location": {"province": "南直隶", "city": "苏州刘家港"},
+    "involved_persons": [{"person_id": null, "name": "郑和", "role": "正使"}],
+    "causes": ["宣扬国威", "寻找建文帝", "发展海外贸易"],
+    "consequences": ["明朝国际影响力达到顶峰", "朝贡体系扩展"],
+    "category": "diplomatic"
+  },
+  {
+    "id": "TL1407_001", "year": 1407, "month": null, "reign": "永乐", "reign_year": 5,
+    "title": "《永乐大典》开始编纂",
+    "description": "解缙等奉敕编纂大型类书《文献大成》，后扩编为《永乐大典》。全书22877卷，目录60卷，约3.7亿字，是中国古代最大的百科全书。",
+    "event_type": "policy_enactment", "scope": "national", "severity": "major",
+    "involved_persons": [
+      {"person_id": 34469, "name": "解缙", "role": "总纂"},
+      {"person_id": null, "name": "朱棣", "role": "敕修"}
+    ],
+    "causes": ["彰显文治", "集天下典籍"], "consequences": ["中国古代最大的百科全书问世"],
+    "category": "cultural"
+  },
+  {
+    "id": "TL1421_001", "year": 1421, "month": 2, "reign": "永乐", "reign_year": 19,
+    "title": "正式迁都北京",
+    "description": "朱棣正式迁都北京，以南京为留都。迁都的根本原因是朱棣的政治根基在北方，同时也是为了加强对蒙古的防御。北京城历经十四年营建，规模宏大。",
+    "event_type": "policy_reform", "scope": "national", "severity": "critical",
+    "location": {"province": "北直隶", "city": "北京"},
+    "involved_persons": [{"person_id": null, "name": "朱棣", "role": "决策"}],
+    "causes": ["巩固北方边防", "朱棣的政治根基在北方"],
+    "consequences": ["北京成为此后明清五百多年的首都", "漕运重要性大增"],
+    "category": "institutional"
+  },
+  {
+    "id": "TL1424_001", "year": 1424, "month": 8, "reign": "永乐", "reign_year": 22,
+    "title": "朱棣病逝于北征归途",
+    "description": "朱棣第五次亲征蒙古，班师途中病逝于榆木川。皇太子朱高炽即位，是为明仁宗，年号洪熙。",
+    "event_type": "imperial_ritual", "scope": "national", "severity": "critical",
+    "involved_persons": [{"person_id": null, "name": "朱棣", "role": "驾崩"}, {"person_id": null, "name": "朱高炽", "role": "即位"}],
+    "causes": [], "consequences": ["永乐时代结束", "仁宣之治开始"],
+    "category": "dynasty"
+  },
+  {
+    "id": "TL1425_001", "year": 1425, "month": null, "reign": "洪熙", "reign_year": 1,
+    "title": "仁宣之治开始",
+    "description": "朱高炽在位仅十个月即病逝，但其政策方向影响深远：停止下西洋、减轻民负、平反建文旧臣。其子朱瞻基即位（宣宗）后延续休养生息政策，史称'仁宣之治'。此时内阁权力开始上升，'三杨'（杨士奇、杨荣、杨溥）执政。",
+    "event_type": "policy_reform", "scope": "national", "severity": "major",
+    "involved_persons": [{"person_id": null, "name": "杨士奇", "role": "内阁大学士"}, {"person_id": null, "name": "杨荣", "role": "内阁大学士"}, {"person_id": null, "name": "杨溥", "role": "内阁大学士"}],
+    "causes": ["永乐朝过度消耗国力"], "consequences": ["明朝国力恢复", "内阁制度逐渐成型"],
+    "category": "political"
+  },
+  {
+    "id": "TL1433_001", "year": 1433, "month": null, "reign": "宣德", "reign_year": 8,
+    "title": "郑和第七次下西洋归国",
+    "description": "郑和第七次下西洋归国。此后明朝停止大规模远航，下西洋的档案被兵部侍郎刘大夏焚毁（一说隐匿），中国逐步走向海禁和封闭。",
+    "event_type": "diplomatic_mission", "scope": "national", "severity": "major",
+    "involved_persons": [{"person_id": null, "name": "郑和", "role": "正使"}],
+    "causes": ["财政压力", "朝中反对声音"], "consequences": ["明朝退出远洋活动", "海禁强化"],
+    "category": "diplomatic"
+  },
+  {
+    "id": "TL1435_001", "year": 1435, "month": null, "reign": "宣德", "reign_year": 10,
+    "title": "朱瞻基驾崩，朱祁镇即位",
+    "description": "明宣宗朱瞻基病逝，年仅九岁的皇太子朱祁镇即位，是为英宗，改元正统。太皇太后张氏摄政，'三杨'继续辅政。",
+    "event_type": "imperial_ritual", "scope": "national", "severity": "critical",
+    "involved_persons": [{"person_id": null, "name": "朱祁镇", "role": "即位（9岁）"}],
+    "causes": [], "consequences": ["幼主即位", "宦官势力开始抬头"],
+    "category": "dynasty"
+  },
+  {
+    "id": "TL1441_001", "year": 1441, "month": null, "reign": "正统", "reign_year": 6,
+    "title": "定都北京后首次大规模修建京城",
+    "description": "对北京城进行全面修建，完善城墙、城门体系。",
+    "event_type": "construction", "scope": "national", "severity": "moderate",
+    "location": {"province": "北直隶", "city": "北京"},
+    "involved_persons": [],
+    "causes": ["首都防御需要"], "consequences": ["北京城格局基本定型"],
+    "category": "infrastructure"
+  },
+  {
+    "id": "TL1449_001", "year": 1449, "month": 7, "reign": "正统", "reign_year": 14,
+    "title": "土木之变",
+    "description": "瓦剌太师也先犯边，宦官王振挟英宗朱祁镇亲征。明军在土木堡（今河北怀来）全军覆没，英宗被俘，王振死于乱军。消息传到北京，朝野震恐，有迁都之议。",
+    "event_type": "battle", "scope": "national", "severity": "critical",
+    "location": {"province": "北直隶", "city": "土木堡"},
+    "involved_persons": [{"person_id": null, "name": "朱祁镇", "role": "被俘"}, {"person_id": null, "name": "王振", "role": "宦官"}],
+    "causes": ["宦官专权", "错误的军事决策"],
+    "consequences": ["英宗被俘", "明朝军事力量严重削弱", "北京保卫战", "明代军事制度的转折点"],
+    "category": "military"
+  },
+  {
+    "id": "TL1449_002", "year": 1449, "month": 10, "reign": "正统", "reign_year": 14,
+    "title": "北京保卫战",
+    "description": "也先挟英宗进逼北京。兵部侍郎于谦力排南迁之议，拥立郕王朱祁钰为帝（景泰帝）。于谦组织北京军民奋勇抵抗，击退瓦剌军。这是明代北京唯一的守城战。",
+    "event_type": "battle", "scope": "national", "severity": "critical",
+    "location": {"province": "北直隶", "city": "北京"},
+    "involved_persons": [{"person_id": null, "name": "于谦", "role": "指挥防御"}, {"person_id": null, "name": "朱祁钰", "role": "即位景泰帝"}],
+    "causes": ["土木之变"], "consequences": ["北京保全", "于谦成为民族英雄"],
+    "category": "military"
+  },
+  {
+    "id": "TL1450_001", "year": 1450, "month": 8, "reign": "景泰", "reign_year": 1,
+    "title": "英宗被释南归",
+    "description": "也先释放英宗朱祁镇南归。景泰帝将其软禁于南宫（今北京东华门附近），尊为太上皇。英宗在南宫度过了七年的软禁生活。",
+    "event_type": "diplomatic_mission", "scope": "national", "severity": "major",
+    "involved_persons": [{"person_id": null, "name": "朱祁镇", "role": "获释"}, {"person_id": null, "name": "朱祁钰", "role": "景泰帝"}],
+    "causes": ["瓦剌与明朝议和"], "consequences": ["两帝并存的政治隐患"],
+    "category": "political"
+  },
+  {
+    "id": "TL1457_001", "year": 1457, "month": 1, "reign": "景泰", "reign_year": 8,
+    "title": "夺门之变",
+    "description": "景泰帝病重，石亨、徐有贞、曹吉祥等发动政变，迎英宗复辟。英宗复位后改元天顺。于谦以'意欲'之罪被冤杀。这是明代最严重的宫廷政变。",
+    "event_type": "rebellion", "scope": "national", "severity": "critical",
+    "location": {"province": "北直隶", "city": "北京"},
+    "involved_persons": [{"person_id": null, "name": "朱祁镇", "role": "复辟"}, {"person_id": null, "name": "于谦", "role": "被冤杀"}, {"person_id": null, "name": "朱祁钰", "role": "被废"}],
+    "causes": ["景泰帝病重无嗣", "英宗不甘被废"],
+    "consequences": ["于谦被冤杀", "天顺朝开始", "政治报复延续"],
+    "category": "political_purge"
+  },
+  {
+    "id": "TL1464_001", "year": 1464, "month": 2, "reign": "天顺", "reign_year": 8,
+    "title": "英宗驾崩，朱见深即位",
+    "description": "英宗朱祁镇驾崩，遗诏废除宫妃殉葬制度。太子朱见深即位，是为宪宗，改元成化。",
+    "event_type": "imperial_ritual", "scope": "national", "severity": "critical",
+    "involved_persons": [{"person_id": null, "name": "朱见深", "role": "即位"}],
+    "causes": [], "consequences": ["废除人殉制度", "成化朝开始"],
+    "category": "dynasty"
+  },
+  {
+    "id": "TL1477_001", "year": 1477, "month": null, "reign": "成化", "reign_year": 13,
+    "title": "设立西厂",
+    "description": "宪宗设立西厂，以太监汪直掌领。西厂权力在东厂和锦衣卫之上，特务活动更为猖獗。汪直屡兴大狱，朝野震恐。",
+    "event_type": "policy_enactment", "scope": "national", "severity": "major",
+    "involved_persons": [{"person_id": null, "name": "汪直", "role": "西厂提督"}],
+    "causes": ["皇帝对东厂不满意", "加强特务控制"],
+    "consequences": ["特务政治加剧", "百官人人自危"],
+    "category": "institutional"
+  },
+  {
+    "id": "TL1487_001", "year": 1487, "month": 9, "reign": "成化", "reign_year": 23,
+    "title": "朱见深驾崩，朱祐樘即位",
+    "description": "宪宗朱见深驾崩，太子朱祐樘即位，是为孝宗，改元弘治。朱祐樘是明代中期少有的勤政皇帝，在位期间政治较为清明，史称'弘治中兴'。",
+    "event_type": "imperial_ritual", "scope": "national", "severity": "critical",
+    "involved_persons": [{"person_id": null, "name": "朱祐樘", "role": "即位"}],
+    "causes": [], "consequences": ["弘治中兴开始", "政治相对清明"],
+    "category": "dynasty"
+  },
+  {
+    "id": "TL1505_001", "year": 1505, "month": 6, "reign": "弘治", "reign_year": 18,
+    "title": "弘治中兴结束，朱厚照即位",
+    "description": "孝宗朱祐樘驾崩，太子朱厚照即位，是为武宗，改元正德。朱厚照是明代最荒唐的皇帝之一，宠信太监刘瑾，纵情声色，常微服出宫。",
+    "event_type": "imperial_ritual", "scope": "national", "severity": "critical",
+    "involved_persons": [{"person_id": null, "name": "朱厚照", "role": "即位"}],
+    "causes": [], "consequences": ["正德朝开始", "宦官专权加剧"],
+    "category": "dynasty"
+  },
+  {
+    "id": "TL1506_001", "year": 1506, "month": null, "reign": "正德", "reign_year": 1,
+    "title": "刘瑾专权",
+    "description": "太监刘瑾与马永成、谷大用等八人号称'八虎'，把持朝政。刘瑾权倾朝野，公侯勋戚多受其害。朝臣上奏弹劾刘瑾者多被下狱。这是明代宦官专权的顶峰之一。",
+    "event_type": "court_purge", "scope": "national", "severity": "major",
+    "involved_persons": [{"person_id": null, "name": "刘瑾", "role": "太监"}, {"person_id": null, "name": "朱厚照", "role": "皇帝"}],
+    "causes": ["皇帝昏庸", "宦官势力膨胀"],
+    "consequences": ["宦官政治加剧", "朝政败坏"],
+    "category": "political"
+  },
+  {
+    "id": "TL1510_001", "year": 1510, "month": null, "reign": "正德", "reign_year": 5,
+    "title": "刘瑾被诛",
+    "description": "刘瑾被宦官张永告发谋反，武宗下令逮捕，凌迟处死。抄家得金银数百万两，珠玉无数。但朝政并未因此好转，武宗依然荒淫。",
+    "event_type": "court_purge", "scope": "national", "severity": "major",
+    "involved_persons": [{"person_id": null, "name": "刘瑾", "role": "被诛"}],
+    "causes": ["内部告发", "谋反嫌疑"],
+    "consequences": ["刘瑾势力覆灭", "但朝政仍在宦官手中"],
+    "category": "political_purge"
+  },
+  {
+    "id": "TL1519_001", "year": 1519, "month": null, "reign": "正德", "reign_year": 14,
+    "title": "宁王之乱",
+    "description": "宁王朱宸濠在南昌举兵叛乱，声称武宗非孝宗亲子，自称监国。南赣巡抚王守仁（王阳明）率兵平叛，仅四十三天即生擒朱宸濠。王守仁在此前后创立'致良知'之说。",
+    "event_type": "rebellion", "scope": "provincial", "severity": "major",
+    "location": {"province": "江西", "city": "南昌"},
+    "involved_persons": [{"person_id": 30374, "name": "王守仁", "role": "平叛"}, {"person_id": null, "name": "朱宸濠", "role": "叛乱"}],
+    "causes": ["藩王不满", "中央控制减弱"],
+    "consequences": ["宁王之乱平息", "王守仁声望大增", "阳明心学传播"],
+    "category": "military"
+  },
+  {
+    "id": "TL1521_001", "year": 1521, "month": 4, "reign": "正德", "reign_year": 16,
+    "title": "武宗驾崩，嘉靖即位",
+    "description": "武宗朱厚照无嗣驾崩。内阁首辅杨廷和以遗诏迎立兴献王之子朱厚熜为帝，是为世宗，改元嘉靖。嘉靖即位后立即爆发'大礼议'之争。",
+    "event_type": "imperial_ritual", "scope": "national", "severity": "critical",
+    "involved_persons": [
+      {"person_id": null, "name": "朱厚熜", "role": "嘉靖帝"},
+      {"person_id": null, "name": "杨廷和", "role": "首辅"}
+    ],
+    "causes": ["武宗无嗣"], "consequences": ["大礼议开始", "嘉靖朝开始"],
+    "category": "dynasty"
+  },
+  {
+    "id": "TL1522_001", "year": 1522, "month": null, "reign": "嘉靖", "reign_year": 1,
+    "title": "大礼议开始",
+    "description": "嘉靖帝欲尊生父兴献王为皇考，与以内阁首辅杨廷和为首的朝臣发生激烈冲突。此争议持续三年，成为嘉靖朝最大的政治事件，最终以皇帝胜利告终，两百余朝臣受杖、贬谪。大礼议深刻改变了嘉靖朝的政治生态。",
+    "event_type": "faction_strife", "scope": "national", "severity": "critical",
+    "involved_persons": [
+      {"person_id": null, "name": "朱厚熜", "role": "皇帝"},
+      {"person_id": null, "name": "杨廷和", "role": "首辅（致仕）"}
+    ],
+    "causes": ["皇位继承的礼制争议"], "consequences": ["皇帝权威强化", "内阁地位下降", "张璁等新贵崛起"],
+    "category": "political"
+  },
+  {
+    "id": "TL1528_001", "year": 1528, "month": null, "reign": "嘉靖", "reign_year": 7,
+    "title": "王守仁去世",
+    "description": "王守仁（王阳明）病逝于江西南安，临终言'此心光明，亦复何言'。其心学思想在此后数十年间广泛传播，深刻影响明代中后期的思想界和政治文化。",
+    "event_type": "death", "scope": "national", "severity": "major",
+    "involved_persons": [{"person_id": 30374, "name": "王守仁", "role": "病逝"}],
+    "causes": [], "consequences": ["阳明心学继续传播", "影响晚明思想界"],
+    "category": "cultural"
+  },
+  {
+    "id": "TL1542_001", "year": 1542, "month": null, "reign": "嘉靖", "reign_year": 21,
+    "title": "壬寅宫变",
+    "description": "宫女杨金英等十六人趁嘉靖帝熟睡，以黄绫带勒其颈部，因误打死结未成。事后全部处死。此后嘉靖帝移居西苑，不再上朝，专注修道。",
+    "event_type": "rebellion", "scope": "national", "severity": "major",
+    "location": {"province": "北直隶", "city": "北京紫禁城"},
+    "involved_persons": [{"person_id": null, "name": "朱厚熜", "role": "遇刺未遂"}],
+    "causes": ["宫女不堪虐待"], "consequences": ["嘉靖帝不再上朝", "怠政加剧"],
+    "category": "political"
+  },
+  {
+    "id": "TL1550_001", "year": 1550, "month": 8, "reign": "嘉靖", "reign_year": 29,
+    "title": "庚戌之变",
+    "description": "蒙古俺答汗率军攻至北京城外，大肆劫掠。嘉靖帝此时已二十余年不上朝，边备废弛。京城闭门自守，任其蹂躏京畿八日。事后杀兵部尚书丁汝夔担责。",
+    "event_type": "border_conflict", "scope": "national", "severity": "critical",
+    "location": {"province": "北直隶", "city": "北京郊外"},
+    "involved_persons": [
+      {"person_id": null, "name": "俺答汗", "role": "蒙古首领"},
+      {"person_id": null, "name": "严嵩", "role": "首辅"},
+      {"person_id": 125411, "name": "严嵩", "role": "首辅（权臣）"}
+    ],
+    "causes": ["边备废弛", "朝廷怠政", "蒙古侵扰"],
+    "consequences": ["边防危机暴露", "朝野震动"],
+    "category": "military"
+  },
+  {
+    "id": "TL1555_001", "year": 1555, "month": null, "reign": "嘉靖", "reign_year": 34,
+    "title": "倭寇大举侵扰东南",
+    "description": "倭寇大规模侵扰浙江、南直隶等地，攻掠州县，杀掠百姓。明军屡战不利。此后戚继光、俞大猷等将领开始练兵抗倭。",
+    "event_type": "pirate_raid", "scope": "provincial", "severity": "critical",
+    "location": {"province": "浙江", "city": null},
+    "involved_persons": [{"person_id": 29605, "name": "戚继光", "role": "后抗倭将领"}, {"person_id": null, "name": "俞大猷", "role": "抗倭将领"}],
+    "causes": ["海禁政策", "边防治安败坏", "日本战国内乱"],
+    "consequences": ["东南沿海糜烂", "戚继光练兵"],
+    "category": "military"
+  },
+  {
+    "id": "TL1562_001", "year": 1562, "month": null, "reign": "嘉靖", "reign_year": 41,
+    "title": "严嵩倒台",
+    "description": "权臣严嵩被御史邹应龙弹劾，嘉靖帝下令罢免严嵩，其子严世蕃被斩。严嵩专权二十余年，贪墨巨万，是明代最著名的奸臣之一。",
+    "event_type": "impeachment", "scope": "national", "severity": "major",
+    "involved_persons": [{"person_id": 125411, "name": "严嵩", "role": "倒台"}, {"person_id": 68547, "name": "徐阶", "role": "继任首辅"}],
+    "causes": ["长期贪腐", "皇帝厌倦"],
+    "consequences": ["徐阶继任首辅", "政治风气短暂好转"],
+    "category": "political_purge"
+  },
+  {
+    "id": "TL1566_001", "year": 1566, "month": 12, "reign": "嘉靖", "reign_year": 45,
+    "title": "嘉靖驾崩，隆庆即位",
+    "description": "嘉靖帝朱厚熜驾崩，在位四十五年，后期二十余年不上朝。太子朱载坖即位，是为穆宗，改元隆庆。",
+    "event_type": "imperial_ritual", "scope": "national", "severity": "critical",
+    "involved_persons": [{"person_id": null, "name": "朱载坖", "role": "即位"}],
+    "causes": [], "consequences": ["隆庆朝开始", "政策转向"],
+    "category": "dynasty"
+  },
+  {
+    "id": "TL1567_001", "year": 1567, "month": null, "reign": "隆庆", "reign_year": 1,
+    "title": "隆庆开关",
+    "description": "在福建巡抚涂泽民奏请下，开放海禁，允许民间商船从福建漳州月港出海贸易。这是明代海禁政策的重大调整，直接促进了晚明海上贸易的繁荣。",
+    "event_type": "policy_reform", "scope": "national", "severity": "major",
+    "location": {"province": "福建", "city": "漳州月港"},
+    "involved_persons": [{"person_id": null, "name": "涂泽民", "role": "奏请"}],
+    "causes": ["民间走私贸易不可禁绝", "财政需求"],
+    "consequences": ["海上贸易繁荣", "白银大量流入"],
+    "category": "economic"
+  },
+  {
+    "id": "TL1568_001", "year": 1568, "month": null, "reign": "隆庆", "reign_year": 2,
+    "title": "戚继光镇守蓟州",
+    "description": "戚继光调任蓟州总兵，镇守北方边防。他在蓟州修长城、练车步营、建空心敌台，使蓟镇成为九边最坚固的防线。在镇十六年，边备为之一新。",
+    "event_type": "appointment", "scope": "provincial", "severity": "moderate",
+    "location": {"province": "北直隶", "city": "蓟州"},
+    "involved_persons": [{"person_id": 29605, "name": "戚继光", "role": "蓟州总兵"}],
+    "causes": ["北方边防需要"],
+    "consequences": ["蓟镇防线巩固"],
+    "category": "military"
+  },
+  {
+    "id": "TL1572_001", "year": 1572, "month": 7, "reign": "隆庆", "reign_year": 6,
+    "title": "隆庆驾崩，万历即位",
+    "description": "隆庆帝朱载坖驾崩，年仅十岁的太子朱翊钧即位，是为神宗，改元万历。张居正联合太监冯保驱逐首辅高拱，出任首辅。",
+    "event_type": "imperial_ritual", "scope": "national", "severity": "critical",
+    "involved_persons": [
+      {"person_id": null, "name": "朱翊钧", "role": "即位（10岁）"},
+      {"person_id": 69011, "name": "张居正", "role": "出任首辅"},
+      {"person_id": 30847, "name": "高拱", "role": "被逐"}
+    ],
+    "causes": [], "consequences": ["张居正改革开始"],
+    "category": "dynasty"
+  },
+  {
+    "id": "TL1573_001", "year": 1573, "month": null, "reign": "万历", "reign_year": 1,
+    "title": "张居正推行考成法",
+    "description": "张居正推行考成法，令各衙门立文簿，凡有政令皆载之，逐月注销，以考官吏之勤惰。考成法极大地提高了行政效率，是张居正改革的核心制度创新。",
+    "event_type": "policy_reform", "scope": "national", "severity": "critical",
+    "involved_persons": [{"person_id": 69011, "name": "张居正", "role": "推行"}],
+    "causes": ["行政效率低下", "官吏因循怠惰"],
+    "consequences": ["行政效率大幅提升", "改革阻力增加"],
+    "category": "institutional"
+  },
+  {
+    "id": "TL1578_001", "year": 1578, "month": null, "reign": "万历", "reign_year": 6,
+    "title": "清丈田亩开始",
+    "description": "张居正下令在全国清丈田亩，清查隐田。各地豪强地主大量隐匿田地不报，清丈阻力极大，但张居正强力推行。清丈结果是全国田亩数从弘治年间的四百余万顷增至七百余万顷。",
+    "event_type": "fiscal_reform", "scope": "national", "severity": "critical",
+    "involved_persons": [{"person_id": 69011, "name": "张居正", "role": "推行"}],
+    "causes": ["田赋征收不均", "隐田严重"],
+    "consequences": ["国家财政收入增加", "地方豪强怨恨加深"],
+    "category": "fiscal"
+  },
+  {
+    "id": "TL1581_001", "year": 1581, "month": null, "reign": "万历", "reign_year": 9,
+    "title": "一条鞭法全面推行",
+    "description": "张居正在全国推行一条鞭法，将各州县赋税徭役合并，统一折银征收。一条鞭法简化了税制，减少了胥吏舞弊空间，适应了商品经济发展的需要，是中国赋役制度史上的重大变革。",
+    "event_type": "fiscal_reform", "scope": "national", "severity": "critical",
+    "involved_persons": [{"person_id": 69011, "name": "张居正", "role": "推行"}],
+    "causes": ["税制繁杂", "商品经济发展", "白银流通增加"],
+    "consequences": ["税制简化", "货币经济深化", "农民负担形式转变"],
+    "category": "fiscal"
+  },
+  {
+    "id": "TL1582_001", "year": 1582, "month": 7, "reign": "万历", "reign_year": 10,
+    "title": "张居正病逝",
+    "description": "张居正病逝，享年五十八岁。万历帝追赠上柱国，谥文忠。但仅仅数月后，万历帝即开始清算张居正。",
+    "event_type": "death", "scope": "national", "severity": "critical",
+    "involved_persons": [{"person_id": 69011, "name": "张居正", "role": "病逝"}],
+    "causes": ["长期操劳过度"], "consequences": ["改革戛然而止", "即将被清算"],
+    "category": "political"
+  },
+  {
+    "id": "TL1583_001", "year": 1583, "month": null, "reign": "万历", "reign_year": 11,
+    "title": "清算张居正",
+    "description": "万历帝下令追夺张居正官阶，籍没家产。其长子张敬修被迫自杀，家人或死或戍。张居正生前所用之人尽数被贬。改革成果遭到系统性破坏。此时辽东努尔哈赤开始其统一女真各部的进程。",
+    "event_type": "court_purge", "scope": "national", "severity": "critical",
+    "involved_persons": [{"person_id": 69011, "name": "张居正", "role": "被清算（已故）"}, {"person_id": null, "name": "朱翊钧", "role": "万历帝"}],
+    "causes": ["皇帝对张居正的长期不满", "政敌反扑"],
+    "consequences": ["改革终结", "明朝财政再次恶化", "万历怠政开始"],
+    "category": "political_purge"
+  },
+  {
+    "id": "TL1583_002", "year": 1583, "month": null, "reign": "万历", "reign_year": 11,
+    "title": "努尔哈赤起兵",
+    "description": "建州女真首领努尔哈赤以'十三副遗甲'起兵，开始统一女真各部。此后三十余年，他先后征服建州、海西、野人女真及蒙古科尔沁等部。",
+    "event_type": "rebellion", "scope": "provincial", "severity": "major",
+    "location": {"province": "辽东", "city": null},
+    "involved_persons": [{"person_id": null, "name": "努尔哈赤", "role": "起兵"}],
+    "causes": ["明朝对女真的压迫", "女真内部统一趋势"],
+    "consequences": ["建州女真崛起", "为明亡埋下伏笔"],
+    "category": "military"
+  },
+  {
+    "id": "TL1585_001", "year": 1585, "month": null, "reign": "万历", "reign_year": 13,
+    "title": "海瑞复出",
+    "description": "海瑞被起用为南京吏部右侍郎。此时他已七十二岁，仍坚持清廉刚正。但两年后病逝，家无余财。",
+    "event_type": "appointment", "scope": "national", "severity": "moderate",
+    "involved_persons": [{"person_id": 30284, "name": "海瑞", "role": "复出"}],
+    "causes": ["朝中清议压力"], "consequences": [],
+    "category": "political"
+  },
+  {
+    "id": "TL1587_001", "year": 1587, "month": null, "reign": "万历", "reign_year": 15,
+    "title": "海瑞病逝",
+    "description": "海瑞病逝于南京。百姓闻讯罢市致哀，送葬者百里不绝。其清贫令人震惊——家无余财，连丧葬费都是同僚凑的。",
+    "event_type": "death", "scope": "national", "severity": "moderate",
+    "involved_persons": [{"person_id": 30284, "name": "海瑞", "role": "病逝"}],
+    "causes": [], "consequences": ["清官典范流传后世"],
+    "category": "cultural"
+  },
+  {
+    "id": "TL1590_001", "year": 1590, "month": null, "reign": "万历", "reign_year": 18,
+    "title": "万历怠政加剧",
+    "description": "万历帝日益怠政，自张居正被清算后，对政务失去兴趣。开始长期不视朝、不补缺官。至后期，六部堂上官多缺员，地方奏疏堆积如山无人批阅。",
+    "event_type": "court_purge", "scope": "national", "severity": "critical",
+    "involved_persons": [{"person_id": null, "name": "朱翊钧", "role": "怠政"}],
+    "causes": ["对朝政厌倦", "国本之争消耗精力"],
+    "consequences": ["中央政府运转失灵", "官场腐败加剧"],
+    "category": "political"
+  },
+  {
+    "id": "TL1592_001", "year": 1592, "month": 4, "reign": "万历", "reign_year": 20,
+    "title": "壬辰倭乱（万历援朝）",
+    "description": "日本丰臣秀吉侵略朝鲜，朝鲜求援。明朝派李如松率军入朝抗日。战争持续六年（至1598年），明朝付出了沉重财政代价，但保住了朝鲜。",
+    "event_type": "battle", "scope": "national", "severity": "critical",
+    "location": {"province": null, "city": "朝鲜"},
+    "involved_persons": [{"person_id": null, "name": "李如松", "role": "明军统帅"}, {"person_id": null, "name": "丰臣秀吉", "role": "日军统帅"}],
+    "causes": ["日本侵略朝鲜", "中朝宗藩关系"],
+    "consequences": ["援朝战争消耗巨大", "辽东兵力空虚", "努尔哈赤趁机坐大"],
+    "category": "military"
+  },
+  {
+    "id": "TL1596_001", "year": 1596, "month": null, "reign": "万历", "reign_year": 24,
+    "title": "矿税监开始四出",
+    "description": "万历帝派遣宦官充任矿监税使，分赴各地开矿征税。矿税监横征暴敛，激起全国范围的民变和反抗。此为万历朝最受诟病的弊政之一。",
+    "event_type": "fiscal_reform", "scope": "national", "severity": "critical",
+    "involved_persons": [{"person_id": null, "name": "朱翊钧", "role": "派遣矿税监"}],
+    "causes": ["财政危机", "皇帝贪财"],
+    "consequences": ["全国范围民变", "官民冲突加剧", "商业遭受严重打击"],
+    "category": "economic"
+  },
+  {
+    "id": "TL1601_001", "year": 1601, "month": null, "reign": "万历", "reign_year": 29,
+    "title": "利玛窦定居北京",
+    "description": "耶稣会传教士利玛窦抵达北京，获准在京城居住。他向中国士大夫介绍西方天文学、数学、地理学知识，与徐光启、李之藻等合作翻译西方科学著作。",
+    "event_type": "cultural_event", "scope": "national", "severity": "moderate",
+    "location": {"province": "北直隶", "city": "北京"},
+    "involved_persons": [
+      {"person_id": null, "name": "利玛窦", "role": "传教士"},
+      {"person_id": null, "name": "徐光启", "role": "合作译书"}
+    ],
+    "causes": ["西方传教士来华"], "consequences": ["中西文化交流", "科学知识传播"],
+    "category": "cultural"
+  },
+  {
+    "id": "TL1602_001", "year": 1602, "month": null, "reign": "万历", "reign_year": 30,
+    "title": "李贽在狱中自杀",
+    "description": "思想家李贽以'惑世诬民'罪名被捕，在狱中割喉自杀。李贽抨击儒学正统、赞扬私欲、主张男女平等，是晚明最具叛逆色彩的思想家。",
+    "event_type": "death", "scope": "national", "severity": "moderate",
+    "involved_persons": [{"person_id": null, "name": "李贽", "role": "自尽"}],
+    "causes": ["思想异端", "官府迫害"],
+    "consequences": ["晚明思想界的标志性事件"],
+    "category": "cultural"
+  },
+  {
+    "id": "TL1615_001", "year": 1615, "month": null, "reign": "万历", "reign_year": 43,
+    "title": "梃击案",
+    "description": "男子张差持木棍闯入太子朱常洛所居慈庆宫，打伤守门太监。审讯时供出与郑贵妃宫中太监有关。此案与后来的'红丸案'、'移宫案'合称明末三大案，反映了宫廷内部围绕皇位继承的激烈斗争。",
+    "event_type": "faction_strife", "scope": "national", "severity": "major",
+    "location": {"province": "北直隶", "city": "北京"},
+    "involved_persons": [{"person_id": null, "name": "朱常洛", "role": "太子"}],
+    "causes": ["国本之争", "宫廷派系斗争"],
+    "consequences": ["宫廷矛盾公开化"],
+    "category": "political"
+  },
+  {
+    "id": "TL1616_001", "year": 1616, "month": 1, "reign": "万历", "reign_year": 44,
+    "title": "努尔哈赤建立后金",
+    "description": "努尔哈赤在赫图阿拉称汗，建立后金政权，建元天命。这标志着女真势力从部落联盟向国家政权的转变，对明朝构成了根本性威胁。",
+    "event_type": "rebellion", "scope": "provincial", "severity": "critical",
+    "location": {"province": "辽东", "city": "赫图阿拉"},
+    "involved_persons": [{"person_id": null, "name": "努尔哈赤", "role": "称汗"}],
+    "causes": ["女真统一", "对明朝不满"],
+    "consequences": ["后金建立", "明朝东北边防面临根本性威胁"],
+    "category": "military"
+  },
+  {
+    "id": "TL1619_001", "year": 1619, "month": 3, "reign": "万历", "reign_year": 47,
+    "title": "萨尔浒之战",
+    "description": "明廷以杨镐为经略，发兵十万（号称四十七万）四路征讨后金。努尔哈赤采取'凭你几路来，我只一路去'的策略，五天之内连破三路。此战是明清兴亡的转折点，从此明朝在辽东转入守势。",
+    "event_type": "battle", "scope": "national", "severity": "critical",
+    "location": {"province": "辽东", "city": "萨尔浒"},
+    "involved_persons": [{"person_id": null, "name": "努尔哈赤", "role": "后金统帅"}, {"person_id": null, "name": "杨镐", "role": "明军经略"}],
+    "causes": ["明廷轻视后金", "战略错误"],
+    "consequences": ["明军在辽东精锐尽失", "后金势力急剧膨胀", "明朝东北防御体系崩溃"],
+    "category": "military"
+  },
+  {
+    "id": "TL1620_001", "year": 1620, "month": 8, "reign": "万历", "reign_year": 48,
+    "title": "万历驾崩，泰昌即位一月暴毙",
+    "description": "万历帝驾崩，在位四十八年。太子朱常洛即位，是为光宗，改元泰昌。但即位仅一个月即暴毙，服'红丸'致死（红丸案）。长子朱由校即位，是为熹宗，改元天启。",
+    "event_type": "imperial_ritual", "scope": "national", "severity": "critical",
+    "involved_persons": [
+      {"person_id": null, "name": "朱翊钧", "role": "驾崩"},
+      {"person_id": null, "name": "朱常洛", "role": "即位一月暴毙"},
+      {"person_id": null, "name": "朱由校", "role": "即位"}
+    ],
+    "causes": [], "consequences": ["明末三大案继续发酵", "天启朝开始"],
+    "category": "dynasty"
+  },
+  {
+    "id": "TL1621_001", "year": 1621, "month": null, "reign": "天启", "reign_year": 1,
+    "title": "后金攻占沈阳、辽阳",
+    "description": "努尔哈赤攻破沈阳、辽阳，辽东七十余城尽失。明廷被迫退守辽西走廊，以山海关为最后防线。",
+    "event_type": "battle", "scope": "national", "severity": "critical",
+    "location": {"province": "辽东", "city": "沈阳"},
+    "involved_persons": [{"person_id": null, "name": "努尔哈赤", "role": "后金统帅"}],
+    "causes": ["萨尔浒之战后明军虚弱"],
+    "consequences": ["辽东全面沦陷", "辽西成为前线"],
+    "category": "military"
+  },
+  {
+    "id": "TL1624_001", "year": 1624, "month": null, "reign": "天启", "reign_year": 4,
+    "title": "魏忠贤擅权",
+    "description": "宦官魏忠贤深得熹宗宠信，权倾朝野。与熹宗乳母客氏勾结，把持朝政，号称'九千九百岁'。各地争相为其建生祠。",
+    "event_type": "court_purge", "scope": "national", "severity": "critical",
+    "involved_persons": [{"person_id": null, "name": "魏忠贤", "role": "权宦"}],
+    "causes": ["皇帝昏庸", "宦官势力膨胀"],
+    "consequences": ["阉党专权", "东林党人受迫害"],
+    "category": "political"
+  },
+  {
+    "id": "TL1625_001", "year": 1625, "month": null, "reign": "天启", "reign_year": 5,
+    "title": "东林党迫害",
+    "description": "魏忠贤对东林党人展开大清洗。杨涟、左光斗、魏大中等'东林六君子'被酷刑折磨致死。各地东林书院被拆毁。",
+    "event_type": "court_purge", "scope": "national", "severity": "critical",
+    "involved_persons": [{"person_id": null, "name": "杨涟", "role": "被杀害"}, {"person_id": null, "name": "左光斗", "role": "被杀害"}],
+    "causes": ["党争", "魏忠贤清除异己"],
+    "consequences": ["东林党元气大伤", "政治恐怖"],
+    "category": "political_purge"
+  },
+  {
+    "id": "TL1626_001", "year": 1626, "month": null, "reign": "天启", "reign_year": 6,
+    "title": "宁远大捷",
+    "description": "后金努尔哈赤率军攻宁远，袁崇焕以红夷大炮坚守，击退后金军。努尔哈赤在此战中被炮火击伤（一说），不久去世。这是明军在辽东的首次重大胜利。",
+    "event_type": "battle", "scope": "national", "severity": "critical",
+    "location": {"province": "辽东", "city": "宁远"},
+    "involved_persons": [
+      {"person_id": null, "name": "袁崇焕", "role": "宁远守将"},
+      {"person_id": null, "name": "努尔哈赤", "role": "后金统帅（受伤）"}
+    ],
+    "causes": ["后金继续南侵"],
+    "consequences": ["努尔哈赤不久去世", "袁崇焕声威大振"],
+    "category": "military"
+  },
+  {
+    "id": "TL1627_001", "year": 1627, "month": 8, "reign": "天启", "reign_year": 7,
+    "title": "熹宗驾崩，崇祯即位",
+    "description": "熹宗朱由校驾崩，弟信王朱由检即位，是为思宗，改元崇祯。崇祯即位后立即铲除魏忠贤集团，力图中兴。但此时明朝已积重难返。",
+    "event_type": "imperial_ritual", "scope": "national", "severity": "critical",
+    "involved_persons": [
+      {"person_id": null, "name": "朱由检", "role": "即位"},
+      {"person_id": null, "name": "魏忠贤", "role": "被铲除"}
+    ],
+    "causes": [], "consequences": ["崇祯朝开始", "明朝进入倒计时"],
+    "category": "dynasty"
+  },
+  {
+    "id": "TL1628_001", "year": 1628, "month": null, "reign": "崇祯", "reign_year": 1,
+    "title": "铲除魏忠贤",
+    "description": "崇祯帝即位后迅速铲除魏忠贤及其阉党。魏忠贤被发配凤阳，途中畏罪自缢。朝野为之振奋，一时有中兴之望。但随后崇祯帝猜疑多变的性格逐渐暴露。",
+    "event_type": "court_purge", "scope": "national", "severity": "critical",
+    "involved_persons": [{"person_id": null, "name": "朱由检", "role": "铲除魏党"}, {"person_id": null, "name": "魏忠贤", "role": "自缢"}],
+    "causes": ["新帝即位", "清除前朝权奸"],
+    "consequences": ["阉党覆灭", "朝野一时振奋"],
+    "category": "political_purge"
+  },
+  {
+    "id": "TL1628_002", "year": 1628, "month": null, "reign": "崇祯", "reign_year": 1,
+    "title": "陕西大旱，流民起义开始",
+    "description": "陕西连年大旱，赤地千里，饥民以树皮、石粉充饥。府谷王嘉胤、安塞高迎祥、米脂李自成等相继起义。明末农民大起义由此拉开序幕。",
+    "event_type": "drought_famine", "scope": "provincial", "severity": "critical",
+    "location": {"province": "陕西", "city": null},
+    "involved_persons": [
+      {"person_id": null, "name": "李自成", "role": "起义领袖"},
+      {"person_id": null, "name": "高迎祥", "role": "闯王"}
+    ],
+    "causes": ["连年旱灾", "赋税沉重", "官府救济不力"],
+    "consequences": ["明末农民大起义爆发"],
+    "category": "disaster"
+  },
+  {
+    "id": "TL1630_001", "year": 1630, "month": 8, "reign": "崇祯", "reign_year": 3,
+    "title": "袁崇焕被处死",
+    "description": "后金皇太极绕道蒙古入塞，兵临北京城下。崇祯帝中反间计（一说），以'通敌'罪将袁崇焕凌迟处死。京城百姓争食其肉。这是明代最冤的冤案之一。",
+    "event_type": "court_purge", "scope": "national", "severity": "critical",
+    "involved_persons": [{"person_id": null, "name": "袁崇焕", "role": "被冤杀"}, {"person_id": null, "name": "朱由检", "role": "崇祯帝"}],
+    "causes": ["后金反间计", "崇祯多疑"],
+    "consequences": ["辽东边防再无良将", "明朝军事加速崩溃"],
+    "category": "political_purge"
+  },
+  {
+    "id": "TL1636_001", "year": 1636, "month": null, "reign": "崇祯", "reign_year": 9,
+    "title": "皇太极称帝，改国号为清",
+    "description": "后金皇太极在盛京（沈阳）称帝，改国号为大清，改元崇德。这是满洲政权从边疆势力向中原王朝转变的标志。",
+    "event_type": "rebellion", "scope": "provincial", "severity": "critical",
+    "location": {"province": "辽东", "city": "盛京"},
+    "involved_persons": [{"person_id": null, "name": "皇太极", "role": "称帝"}],
+    "causes": ["后金实力壮大", "需要与明朝对等"],
+    "consequences": ["清朝建立", "对明朝形成更大压力"],
+    "category": "military"
+  },
+  {
+    "id": "TL1638_001", "year": 1638, "month": null, "reign": "崇祯", "reign_year": 11,
+    "title": "清军入塞（戊寅之变）",
+    "description": "清军第四次入塞，攻破济南，俘德王，掳掠人口四十六万余，金银百余万两。明督师卢象升战死。",
+    "event_type": "battle", "scope": "national", "severity": "critical",
+    "location": {"province": "北直隶/山东", "city": null},
+    "involved_persons": [{"person_id": null, "name": "卢象升", "role": "战死"}],
+    "causes": ["清军不断南侵"],
+    "consequences": ["内地遭受严重破坏", "明朝国力进一步消耗"],
+    "category": "military"
+  },
+  {
+    "id": "TL1641_001", "year": 1641, "month": null, "reign": "崇祯", "reign_year": 14,
+    "title": "李自成攻克洛阳",
+    "description": "李自成攻破洛阳，杀福王朱常洵。将福王血肉与鹿肉同烹，号称'福禄宴'。起义军获得大量资财和王府粮食，势力急剧膨胀。",
+    "event_type": "rebellion", "scope": "national", "severity": "critical",
+    "location": {"province": "河南", "city": "洛阳"},
+    "involved_persons": [{"person_id": null, "name": "李自成", "role": "起义军领袖"}],
+    "causes": ["农民起义壮大", "河南饥荒"],
+    "consequences": ["起义军获得巨额资财", "势力急剧膨胀"],
+    "category": "military"
+  },
+  {
+    "id": "TL1642_001", "year": 1642, "month": null, "reign": "崇祯", "reign_year": 15,
+    "title": "松锦之战明军大败",
+    "description": "明清两军在松山、锦州决战，明军十三万全军覆没，总督洪承畴被俘后降清。明朝在关外的精锐部队损失殆尽。",
+    "event_type": "battle", "scope": "national", "severity": "critical",
+    "location": {"province": "辽东", "city": "松山"},
+    "involved_persons": [{"person_id": null, "name": "洪承畴", "role": "被俘降清"}],
+    "causes": ["清军强大"], "consequences": ["明军关外精锐尽失", "关外防线崩溃"],
+    "category": "military"
+  },
+  {
+    "id": "TL1643_001", "year": 1643, "month": null, "reign": "崇祯", "reign_year": 16,
+    "title": "李自成建大顺政权",
+    "description": "李自成在襄阳称新顺王，后攻占西安，正式建立大顺政权，年号永昌。同时张献忠在武昌称大西王。明朝已陷入两面夹击的绝境。",
+    "event_type": "rebellion", "scope": "national", "severity": "critical",
+    "location": {"province": "陕西", "city": "西安"},
+    "involved_persons": [
+      {"person_id": null, "name": "李自成", "role": "称王"},
+      {"person_id": null, "name": "张献忠", "role": "称大西王"}
+    ],
+    "causes": ["农民起义成功壮大"],
+    "consequences": ["明朝灭亡在即"],
+    "category": "military"
+  },
+  {
+    "id": "TL1644_001", "year": 1644, "month": 3, "reign": "崇祯", "reign_year": 17,
+    "title": "李自成破北京，崇祯自缢，明朝灭亡",
+    "description": "三月十九日，李自成攻破北京内城。崇祯帝在煤山（景山）自缢身亡，时年三十五岁。其在衣襟上留有血书：'朕死无面目见祖宗於地下，去朕冠冕，以发覆面，任贼分裂朕尸，勿伤百姓一人。'明朝享国二百七十六年而亡。",
+    "event_type": "rebellion", "scope": "national", "severity": "critical",
+    "location": {"province": "北直隶", "city": "北京"},
+    "involved_persons": [
+      {"person_id": null, "name": "朱由检", "role": "自缢殉国"},
+      {"person_id": null, "name": "李自成", "role": "攻入北京"}
+    ],
+    "causes": ["内外交困", "积重难返"],
+    "consequences": ["明朝灭亡", "清军入关"],
+    "category": "dynasty"
+  }
+]

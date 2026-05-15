@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ming.sim/schemas/person.schema.json",
+  "title": "明代人物",
+  "description": "明代人物档案的完整数据模型",
+  "type": "object",
+  "required": ["id", "name", "native_place", "historical_confidence"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "唯一标识符"
+    },
+    "name": {
+      "type": "string",
+      "description": "姓名"
+    },
+    "style_name": {
+      "type": "string",
+      "description": "字"
+    },
+    "courtesy_name_or_hao": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "号/别号"
+    },
+    "birth_year": {
+      "type": "integer",
+      "minimum": 1300,
+      "maximum": 1700,
+      "description": "生年"
+    },
+    "death_year": {
+      "type": "integer",
+      "minimum": 1300,
+      "maximum": 1700,
+      "description": "卒年"
+    },
+    "native_place": {
+      "type": "object",
+      "required": ["province"],
+      "properties": {
+        "province": { "type": "string" },
+        "prefecture": { "type": "string" },
+        "county": { "type": "string" },
+        "village": { "type": "string" }
+      }
+    },
+    "entry_path": {
+      "type": "string",
+      "enum": [
+        "进士", "举人", "监生", "荫补", "军功", "吏员", "宦官",
+        "捐纳", "荐举", "袭职", "恩荫", "其他"
+      ],
+      "description": "入仕途径"
+    },
+    "examination_year": {
+      "type": "integer",
+      "description": "科举中式年份"
+    },
+    "examination_rank": {
+      "type": "string",
+      "enum": ["一甲", "二甲", "三甲", null],
+      "description": "科举甲第"
+    },
+    "career_timeline": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["start_year", "office_id"],
+        "properties": {
+          "start_year": { "type": "integer" },
+          "end_year": { "type": "integer" },
+          "office_id": { "type": "string" },
+          "title": { "type": "string" },
+          "rank": { "type": "string", "enum": ["正一品", "从一品", "正二品", "从二品", "正三品", "从三品", "正四品", "从四品", "正五品", "从五品", "正六品", "从六品", "正七品", "从七品", "正八品", "从八品", "正九品", "从九品", "未入流"] },
+          "location": { "type": "string" },
+          "source_ref": { "type": "string" }
+        }
+      }
+    },
+    "faction_tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "党派/派系标签, 如 东林党、阉党、楚党、浙党"
+    },
+    "relation_edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["target_id", "relation_type"],
+        "properties": {
+          "target_id": { "type": "string", "description": "关系目标人物 id" },
+          "relation_type": {
+            "type": "string",
+            "enum": ["同乡", "同年", "座主", "门生", "姻亲", "政敌", "盟友", "上下级", "举主", "受业师", "同僚", "世交"]
+          },
+          "weight": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "关系强度"
+          },
+          "source_ref": { "type": "string" }
+        }
+      }
+    },
+    "structured_traits": {
+      "type": "object",
+      "description": "12 维性格向量，每项 0-1",
+      "properties": {
+        "power_desire": { "type": "number", "minimum": 0, "maximum": 1, "description": "权力欲" },
+        "risk_tolerance": { "type": "number", "minimum": 0, "maximum": 1, "description": "风险偏好" },
+        "uprightness": { "type": "number", "minimum": 0, "maximum": 1, "description": "刚直程度" },
+        "pragmatism": { "type": "number", "minimum": 0, "maximum": 1, "description": "现实妥协度" },
+        "fiscal_conservatism": { "type": "number", "minimum": 0, "maximum": 1, "description": "财政保守倾向 (1=保守)" },
+        "military_adventurism": { "type": "number", "minimum": 0, "maximum": 1, "description": "军事冒险倾向" },
+        "ritual_orthodoxy": { "type": "number", "minimum": 0, "maximum": 1, "description": "名教/礼制执着度" },
+        "imperial_attachment": { "type": "number", "minimum": 0, "maximum": 1, "description": "对皇权依附程度" },
+        "dissent_tolerance": { "type": "number", "minimum": 0, "maximum": 1, "description": "对异议容忍度" },
+        "factionalism": { "type": "number", "minimum": 0, "maximum": 1, "description": "结党倾向" },
+        "integrity": { "type": "number", "minimum": 0, "maximum": 1, "description": "私德/廉洁可信度" },
+        "executive_ability": { "type": "number", "minimum": 0, "maximum": 1, "description": "行政执行力" }
+      },
+      "required": [
+        "power_desire", "risk_tolerance", "uprightness", "pragmatism",
+        "fiscal_conservatism", "military_adventurism", "ritual_orthodoxy",
+        "imperial_attachment", "dissent_tolerance", "factionalism",
+        "integrity", "executive_ability"
+      ]
+    },
+    "evidence_quotes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["quote", "source", "trait_affected"],
+        "properties": {
+          "quote": { "type": "string", "description": "原文证据片段" },
+          "source": { "type": "string", "description": "出处（明史·卷xx、某墓志铭等）" },
+          "trait_affected": { "type": "array", "items": { "type": "string" }, "description": "影响的性格维度" },
+          "confidence": { "type": "string", "enum": ["high", "medium", "low"] }
+        }
+      }
+    },
+    "behavior_guidelines": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "给 LLM 代理的自然语言行为规范"
+    },
+    "source_refs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "所有数据来源引用"
+    },
+    "historical_confidence": {
+      "type": "string",
+      "enum": ["direct_evidence", "scholarly_consensus", "reasonable_inference"],
+      "description": "历史可信度等级"
+    },
+    "is_historical": {
+      "type": "boolean",
+      "description": "是否为真实历史人物（false 表示模拟补完角色）"
+    }
+  }
+}

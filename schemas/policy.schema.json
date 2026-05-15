@@ -1,0 +1,184 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ming.sim/schemas/policy.schema.json",
+  "title": "明代政令/政策",
+  "description": "明代政务流转中的政策、奏疏、圣旨等文书数据模型",
+  "type": "object",
+  "required": ["id", "title", "type", "status", "initiated_date", "initiated_by"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "唯一标识符"
+    },
+    "title": {
+      "type": "string",
+      "description": "政令标题"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "memorial", "tiben", "jietie", "tangbao",
+        "imperial_edict", "cabinet_draft",
+        "ministry_report", "provincial_report",
+        "censor_report", "impeachment"
+      ],
+      "description": "文书类型：奏疏/题本/揭帖/塘报/圣旨/票拟/部议/省报/御史纠弹/弹章"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "drafted", "submitted", "under_ministry_review", "under_cabinet_review",
+        "cabinet_drafted", "awaiting_imperial_decision", "approved",
+        "rejected", "returned_for_revision", "issued", "received_by_province",
+        "reported_to_prefecture", "executing", "executed", "under_supervision",
+        "completed", "blocked", "delayed"
+      ],
+      "description": "文书流转状态"
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["urgent", "high", "normal", "low"],
+      "description": "优先级"
+    },
+    "initiated_date": {
+      "type": "object",
+      "required": ["year"],
+      "properties": {
+        "year": { "type": "integer" },
+        "month": { "type": "integer", "minimum": 1, "maximum": 13 },
+        "day": { "type": "integer", "minimum": 1, "maximum": 30 }
+      }
+    },
+    "deadline_date": {
+      "type": "object",
+      "properties": {
+        "year": { "type": "integer" },
+        "month": { "type": "integer" },
+        "day": { "type": "integer" }
+      }
+    },
+    "initiated_by": {
+      "type": "string",
+      "description": "发起人/机构 ID"
+    },
+    "initiated_role": {
+      "type": "string",
+      "enum": ["emperor", "grand_secretary", "minister", "censor", "governor", "prefect", "magistrate", "general", "eunuch"]
+    },
+    "target_regions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "目标区域 ID 列表"
+    },
+    "content": {
+      "type": "object",
+      "properties": {
+        "summary": {
+          "type": "string",
+          "description": "内容摘要（用于代理快速理解）"
+        },
+        "full_text": {
+          "type": "string",
+          "description": "完整文书正文"
+        },
+        "format": {
+          "type": "string",
+          "enum": ["memorial_structure", "edict_structure", "report_structure"],
+          "description": "文体格式模板标识"
+        }
+      }
+    },
+    "actions_required": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "action_id": { "type": "string" },
+          "description": { "type": "string" },
+          "assigned_to": { "type": "string", "description": "执行人/机构 ID" },
+          "deadline_days": { "type": "integer", "description": "执行期限（天）" },
+          "resources_required": {
+            "type": "object",
+            "properties": {
+              "silver_tael": { "type": "number", "description": "银两" },
+              "grain_dan": { "type": "number", "description": "粮石" },
+              "laborers": { "type": "integer", "description": "民夫数" },
+              "troops": { "type": "integer", "description": "兵员" }
+            }
+          },
+          "status": { "type": "string", "enum": ["pending", "in_progress", "completed", "failed", "blocked"] }
+        }
+      }
+    },
+    "review_chain": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "step": { "type": "integer", "description": "步骤序号" },
+          "reviewer_id": { "type": "string", "description": "审批人/机构 ID" },
+          "reviewer_role": { "type": "string" },
+          "date": {
+            "type": "object",
+            "properties": {
+              "year": { "type": "integer" },
+              "month": { "type": "integer" },
+              "day": { "type": "integer" }
+            }
+          },
+          "decision": { "type": "string", "enum": ["approved", "rejected", "revised", "deferred"] },
+          "comments": { "type": "string" },
+          "revision_notes": { "type": "string" }
+        }
+      }
+    },
+    "llm_agent_record": {
+      "type": "object",
+      "description": "LLM 代理处理记录",
+      "properties": {
+        "agent_id": { "type": "string" },
+        "agent_role": { "type": "string" },
+        "decision_summary": { "type": "string" },
+        "reasoning": { "type": "string" },
+        "risk_assessment": { "type": "string" },
+        "expected_outcome": { "type": "string" },
+        "cited_rules": { "type": "array", "items": { "type": "string" } },
+        "cited_sources": { "type": "array", "items": { "type": "string" } },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "alternative_options": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "execution_feedback": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "from_agent_id": { "type": "string" },
+          "from_region_id": { "type": "string" },
+          "date": {
+            "type": "object",
+            "properties": {
+              "year": { "type": "integer" },
+              "month": { "type": "integer" },
+              "day": { "type": "integer" }
+            }
+          },
+          "status": { "type": "string", "enum": ["on_track", "delayed", "obstructed", "deviated", "completed"] },
+          "local_conditions": { "type": "string" },
+          "difficulties": { "type": "array", "items": { "type": "string" } },
+          "suggestions": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "historical_validity": {
+      "type": "object",
+      "properties": {
+        "is_historically_plausible": { "type": "boolean" },
+        "anachronisms": { "type": "array", "items": { "type": "string" } },
+        "permission_violations": { "type": "array", "items": { "type": "string" } },
+        "geography_errors": { "type": "array", "items": { "type": "string" } },
+        "overall_confidence": { "type": "string", "enum": ["high", "medium", "low"] }
+      }
+    }
+  }
+}
