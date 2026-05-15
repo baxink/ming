@@ -1,4 +1,4 @@
-import issue from "../data/issue.json" with { type: "json" };
+import { issue } from "./issue-data.js";
 
 const JSON_HEADERS = {
   "content-type": "application/json; charset=utf-8",
