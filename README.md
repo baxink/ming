@@ -125,7 +125,15 @@ Worker 从 Workers KV 读取历史数据：
 
 生成后的季报会缓存到 `issue:v3:<明朝年>:<起始月>`；定时触发器每天北京时间约 00:05 预生成当天季报。
 
-评论栏目会优先使用 OpenAI API 基于本季度热点新闻生成专业时评；如果没有配置 `OPENAI_API_KEY`、模型接口超时、返回格式不合法或内容未通过校验，Worker 会自动回退到内置规则评论，整期季报不会失败。
+评论栏目会按以下优先级生成专业时评：
+
+1. `Cloudflare Workers AI`（推荐，直接在 Worker 内运行）
+2. `OpenAI-compatible Chat Completions API`
+3. `OpenAI Responses API`
+4. 内置规则评论回退
+
+只要上游模型超时、返回格式不合法或内容未通过校验，Worker 会自动回退到下一层，整期季报不会失败。当前已验证 `ChatAnywhere` 免费 key 不支持从 Cloudflare Worker / 反向代理出口访问，因此不再作为线上默认方案。
+当前默认 Workers AI 评论模型为 `@cf/meta/llama-3.3-70b-instruct-fp8-fast`；评论生成同时启用 JSON schema 约束，以提高线上出稿稳定性。
 
 部署前先上传历史数据、安装依赖并验证：
 
@@ -147,7 +155,11 @@ NODE_TLS_REJECT_UNAUTHORIZED=0 CLOUDFLARE_API_TOKEN="$TOKEN" \
   --path ../../data/processed/timeline/ming_disasters.json \
   --namespace-id 3c3cb6334e2a4e19b3e14d3dee8b610f --remote
 
-# 可选但推荐：配置 OpenAI 评论生成密钥。密钥只进 Cloudflare secret，不进 Git。
+# 可选：配置 OpenAI-compatible 评论生成密钥。密钥只进 Cloudflare secret，不进 Git。
+NODE_TLS_REJECT_UNAUTHORIZED=0 CLOUDFLARE_API_TOKEN="$TOKEN" \
+  npx wrangler secret put LLM_API_KEY
+
+# 可选：配置 OpenAI 官方密钥，作为次级回退
 NODE_TLS_REJECT_UNAUTHORIZED=0 CLOUDFLARE_API_TOKEN="$TOKEN" \
   npx wrangler secret put OPENAI_API_KEY
 
@@ -155,6 +167,12 @@ npm run deploy
 ```
 
 Worker 不读取仓库里的静态 `issue.json`，也不需要本地每日生成后再上传 GitHub。
+
+如需排查评论生成链路，可临时请求：
+
+- `GET /api/issue/latest?date=YYYY-MM-DD&debug=1&refresh=1`
+
+其中 `debug=1` 会返回脱敏后的模型调用状态，`refresh=1` 会绕过当季缓存并立即重算。
 
 ## 运行测试
 

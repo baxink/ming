@@ -1,5 +1,8 @@
 const DEFAULT_OPENAI_BASE = "https://api.openai.com/v1";
 const DEFAULT_OPENAI_MODEL = "gpt-5.4-mini";
+const DEFAULT_LLM_BASE = "https://api.chatanywhere.tech/v1";
+const DEFAULT_LLM_MODEL = "gpt-4o-mini";
+const DEFAULT_WORKERS_AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 
 function topArticles(issue) {
   return [issue.lead, ...(issue.articles || [])]
@@ -26,6 +29,7 @@ function commentaryPrompt(issue) {
     "3. 按“判断、热点切入、制度分析、风险结论”的逻辑写，语气专业、犀利、像报纸社论。",
     "4. 评论应聚焦财政、军政、地方执行、民生承压、权力结构中的至少一个维度。",
     "5. 输出严格 JSON，不要 Markdown，不要解释。",
+    "6. body 必须是单个中文字符串，不得输出数组、对象、分点字段或嵌套 JSON。",
     "JSON 字段：headline, subhead, body。",
     `本期：${period.label || ""}，${period.start_label || ""}至${period.end_label || ""}。`,
     "本季度新闻：",
@@ -33,7 +37,26 @@ function commentaryPrompt(issue) {
   ].join("\n");
 }
 
+function opinionJsonSchema() {
+  return {
+    type: "object",
+    required: ["headline", "subhead", "body"],
+    additionalProperties: false,
+    properties: {
+      headline: { type: "string" },
+      subhead: { type: "string" },
+      body: { type: "string" },
+    },
+  };
+}
+
 function parseOutputText(payload) {
+  if (payload?.response && typeof payload.response === "object") return JSON.stringify(payload.response);
+  if (typeof payload?.response === "string") return payload.response;
+  if (payload?.result?.response && typeof payload.result.response === "object") return JSON.stringify(payload.result.response);
+  if (typeof payload?.result?.response === "string") return payload.result.response;
+  const chatContent = payload?.choices?.[0]?.message?.content;
+  if (typeof chatContent === "string") return chatContent;
   if (typeof payload?.output_text === "string") return payload.output_text;
   if (typeof payload?.text === "string") return payload.text;
   const parts = [];
@@ -45,14 +68,39 @@ function parseOutputText(payload) {
   return parts.join("\n");
 }
 
-function normalizeOpinion(raw, baseOpinion, issue) {
+function parseOpinionJson(text) {
+  const source = String(text || "").trim();
+  const fenced = /^```(?:json)?\s*([\s\S]*?)\s*```$/i.exec(source);
+  const candidate = fenced ? fenced[1] : source;
+  try {
+    return JSON.parse(candidate);
+  } catch {
+    return JSON.parse(escapeJsonLiteralNewlines(candidate));
+  }
+}
+
+function headlineKeywords(headline) {
+  return String(headline || "")
+    .split(/[，、：《》“”"'（）()\s]+/)
+    .map((part) => part.trim())
+    .filter((part) => part.length >= 2)
+    .slice(0, 4);
+}
+
+function normalizeOpinion(raw, baseOpinion, issue, sourceLabel) {
   const headline = String(raw?.headline || "").trim();
   const subhead = String(raw?.subhead || "").trim();
-  const body = String(raw?.body || "").trim();
-  const focus = topArticles(issue)[0]?.headline || "";
+  const body = normalizeBody(raw?.body);
+  const focusHeadlines = topArticles(issue).map((article) => article?.headline || "").filter(Boolean);
 
   if (!headline || !subhead || body.length < 120) return null;
-  if (focus && !body.includes(focus)) return null;
+  if (focusHeadlines.length > 0) {
+    const matchesHotspot = focusHeadlines.some((focus) => {
+      if (body.includes(focus)) return true;
+      return headlineKeywords(focus).some((keyword) => body.includes(keyword));
+    });
+    if (!matchesHotspot) return null;
+  }
 
   return {
     ...baseOpinion,
@@ -60,8 +108,19 @@ function normalizeOpinion(raw, baseOpinion, issue) {
     subhead: subhead.slice(0, 90),
     byline: "本报评论部",
     body: body.slice(0, 520),
-    sources: Array.from(new Set([...(baseOpinion.sources || []), "OpenAI 生成评论"])),
+    sources: Array.from(new Set([...(baseOpinion.sources || []), sourceLabel])),
   };
+}
+
+function normalizeBody(value) {
+  if (typeof value === "string") return value.trim();
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeBody(item)).filter(Boolean).join("\n\n").trim();
+  }
+  if (value && typeof value === "object") {
+    return Object.values(value).map((item) => normalizeBody(item)).filter(Boolean).join("\n").trim();
+  }
+  return String(value || "").trim();
 }
 
 function replaceOpinion(issue, nextOpinion) {
@@ -71,35 +130,243 @@ function replaceOpinion(issue, nextOpinion) {
   return { ...issue, articles, sections };
 }
 
-export async function enhanceIssueOpinion(issue, env) {
-  const apiKey = env?.OPENAI_API_KEY;
-  const baseOpinion = fallbackOpinion(issue);
-  if (!apiKey || !baseOpinion) return issue;
+function resolveFetch(fetchFn) {
+  if (typeof fetchFn === "function") {
+    return fetchFn === fetch ? fetch.bind(globalThis) : fetchFn;
+  }
+  return fetch.bind(globalThis);
+}
 
-  const apiBase = String(env.OPENAI_API_BASE || DEFAULT_OPENAI_BASE).replace(/\/+$/, "");
-  const model = env.OPENAI_MODEL || DEFAULT_OPENAI_MODEL;
-  const fetchFn = env.OPENAI_FETCH || fetch;
+function debugState(provider = null) {
+  return {
+    provider: provider?.id || null,
+    providerSource: provider?.sourceLabel || null,
+    providerHost: provider?.host || null,
+    responseOk: false,
+    status: null,
+    parseOk: false,
+    validationOk: false,
+    durationMs: null,
+    errorName: null,
+    errorMessage: null,
+    outputPreview: null,
+  };
+}
+
+function sanitizeErrorMessage(message) {
+  return String(message || "")
+    .replace(/Bearer\s+[^\s]+/gi, "Bearer [redacted]")
+    .replace(/sk-[A-Za-z0-9._-]+/g, "[redacted]")
+    .replace(/[A-Za-z0-9_-]{24,}/g, "[redacted]")
+    .slice(0, 240);
+}
+
+function summarizeFailure(status, payloadText) {
+  const detail = sanitizeErrorMessage(payloadText).trim();
+  return detail ? `HTTP ${status}: ${detail}` : `HTTP ${status}`;
+}
+
+function previewOutput(text) {
+  return sanitizeErrorMessage(String(text || "").trim()).slice(0, 240) || null;
+}
+
+function escapeJsonLiteralNewlines(source) {
+  let result = "";
+  let inString = false;
+  let escaping = false;
+
+  for (const char of String(source || "")) {
+    if (escaping) {
+      result += char;
+      escaping = false;
+      continue;
+    }
+
+    if (char === "\\") {
+      result += char;
+      escaping = true;
+      continue;
+    }
+
+    if (char === "\"") {
+      result += char;
+      inString = !inString;
+      continue;
+    }
+
+    if (inString && (char === "\n" || char === "\r")) {
+      result += "\\n";
+      continue;
+    }
+
+    result += char;
+  }
+
+  return result;
+}
+
+export async function enhanceIssueOpinion(issue, env) {
+  const baseOpinion = fallbackOpinion(issue);
+  if (!baseOpinion) {
+    return {
+      issue,
+      debug: { ...debugState(), errorMessage: "Missing base opinion article" },
+    };
+  }
+
+  const provider = resolveProvider(env);
+  if (!provider) {
+    return {
+      issue,
+      debug: { ...debugState(), errorMessage: "No AI provider configured" },
+    };
+  }
+
+  const debug = debugState(provider);
+  const startedAt = Date.now();
 
   try {
-    const response = await fetchFn(`${apiBase}/responses`, {
+    if (typeof provider.execute === "function") {
+      const payload = await provider.execute(issue);
+      debug.status = 200;
+      debug.responseOk = true;
+      debug.durationMs = Date.now() - startedAt;
+      debug.outputPreview = previewOutput(parseOutputText(payload));
+
+      const raw = parseOpinionJson(parseOutputText(payload));
+      debug.parseOk = true;
+      const nextOpinion = normalizeOpinion(raw, baseOpinion, issue, provider.sourceLabel);
+      if (!nextOpinion) {
+        debug.validationOk = false;
+        debug.errorMessage = "Model output failed opinion validation";
+        return { issue, debug };
+      }
+
+      debug.validationOk = true;
+      return { issue: replaceOpinion(issue, nextOpinion), debug };
+    }
+
+    const response = await provider.fetchFn(provider.url, {
       method: "POST",
       headers: {
-        "authorization": `Bearer ${apiKey}`,
+        "authorization": `Bearer ${provider.apiKey}`,
         "content-type": "application/json",
       },
-      body: JSON.stringify({
-        model,
-        input: commentaryPrompt(issue),
-        max_output_tokens: 700,
-      }),
+      body: JSON.stringify(provider.payload(issue)),
     });
-    if (!response.ok) return issue;
+    debug.status = response.status;
+    debug.responseOk = response.ok;
+    debug.durationMs = Date.now() - startedAt;
+
+    if (!response.ok) {
+      const payloadText = await response.text();
+      debug.outputPreview = previewOutput(payloadText);
+      debug.errorMessage = summarizeFailure(response.status, payloadText);
+      return { issue, debug };
+    }
 
     const payload = await response.json();
-    const raw = JSON.parse(parseOutputText(payload));
-    const nextOpinion = normalizeOpinion(raw, baseOpinion, issue);
-    return nextOpinion ? replaceOpinion(issue, nextOpinion) : issue;
-  } catch {
-    return issue;
+    debug.outputPreview = previewOutput(parseOutputText(payload));
+    const raw = parseOpinionJson(parseOutputText(payload));
+    debug.parseOk = true;
+    const nextOpinion = normalizeOpinion(raw, baseOpinion, issue, provider.sourceLabel);
+    if (!nextOpinion) {
+      debug.validationOk = false;
+      debug.errorMessage = "Model output failed opinion validation";
+      return { issue, debug };
+    }
+
+    debug.validationOk = true;
+    return { issue: replaceOpinion(issue, nextOpinion), debug };
+  } catch (error) {
+    debug.durationMs = Date.now() - startedAt;
+    debug.errorName = error instanceof Error ? error.name : "Error";
+    debug.errorMessage = sanitizeErrorMessage(error instanceof Error ? error.message : String(error));
+    return { issue, debug };
   }
+}
+
+function resolveProvider(env) {
+  if (typeof env?.AI?.run === "function") {
+    const model = env.AI_MODEL || DEFAULT_WORKERS_AI_MODEL;
+    return {
+      execute(issue) {
+        return env.AI.run(model, {
+          messages: [
+            {
+              role: "system",
+              content: "你是《大明新闻季报》的资深社论作者，只输出严格 JSON。",
+            },
+            {
+              role: "user",
+              content: commentaryPrompt(issue),
+            },
+          ],
+          temperature: 0.7,
+          max_tokens: 700,
+          response_format: {
+            type: "json_schema",
+            json_schema: opinionJsonSchema(),
+          },
+        });
+      },
+      host: "workers.ai",
+      id: "workers_ai",
+      sourceLabel: "Cloudflare Workers AI 生成评论",
+    };
+  }
+
+  if (env?.LLM_API_KEY) {
+    const apiBase = String(env.LLM_API_BASE || DEFAULT_LLM_BASE).replace(/\/+$/, "");
+    const model = env.LLM_MODEL || DEFAULT_LLM_MODEL;
+    const apiType = env.LLM_API_TYPE || "chat_completions";
+    if (apiType === "chat_completions") {
+      return {
+        apiKey: env.LLM_API_KEY,
+        fetchFn: resolveFetch(env.LLM_FETCH),
+        host: new URL(`${apiBase}/chat/completions`).host,
+        id: "chat_completions",
+        sourceLabel: apiBase.includes("chatanywhere") ? "ChatAnywhere 生成评论" : "兼容模型生成评论",
+        url: `${apiBase}/chat/completions`,
+        payload(issue) {
+          return {
+            model,
+            messages: [
+              {
+                role: "system",
+                content: "你是《大明新闻季报》的资深社论作者，只输出严格 JSON。",
+              },
+              {
+                role: "user",
+                content: commentaryPrompt(issue),
+              },
+            ],
+            temperature: 0.7,
+          };
+        },
+      };
+    }
+  }
+
+  if (env?.OPENAI_API_KEY) {
+    const apiBase = String(env.OPENAI_API_BASE || DEFAULT_OPENAI_BASE).replace(/\/+$/, "");
+    const model = env.OPENAI_MODEL || DEFAULT_OPENAI_MODEL;
+    return {
+      apiKey: env.OPENAI_API_KEY,
+      fetchFn: resolveFetch(env.OPENAI_FETCH),
+      host: new URL(`${apiBase}/responses`).host,
+      id: "openai_responses",
+      sourceLabel: "OpenAI 生成评论",
+      url: `${apiBase}/responses`,
+      payload(issue) {
+        return {
+          model,
+          input: commentaryPrompt(issue),
+          max_output_tokens: 700,
+        };
+      },
+    };
+  }
+
+  return null;
 }
