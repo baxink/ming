@@ -1,4 +1,4 @@
-import { issue } from "./issue-data.js";
+import { generateIssue } from "./generator.js";
 
 const JSON_HEADERS = {
   "content-type": "application/json; charset=utf-8",
@@ -18,7 +18,7 @@ function jsonResponse(payload, init = {}) {
   });
 }
 
-function healthPayload() {
+function healthPayload(issue) {
   return {
     ok: true,
     service: "ming-post-api",
@@ -38,6 +38,14 @@ function notFoundPayload(pathname) {
   };
 }
 
+function invalidDatePayload(date) {
+  return {
+    ok: false,
+    error: "invalid_date",
+    message: `Invalid date: ${date}`,
+  };
+}
+
 export default {
   async fetch(request) {
     const url = new URL(request.url);
@@ -54,11 +62,20 @@ export default {
     }
 
     if (url.pathname === "/" || url.pathname === "/health") {
-      return jsonResponse(healthPayload());
+      const issue = generateIssue();
+      return jsonResponse(healthPayload(issue));
     }
 
     if (url.pathname === "/api/issue" || url.pathname === "/api/issue/latest") {
-      return jsonResponse(issue);
+      const date = url.searchParams.get("date") || undefined;
+      try {
+        return jsonResponse(generateIssue(date));
+      } catch (error) {
+        if (error instanceof Error && error.message.startsWith("Invalid date:")) {
+          return jsonResponse(invalidDatePayload(date || ""), { status: 400, headers: { "cache-control": "no-store" } });
+        }
+        throw error;
+      }
     }
 
     return jsonResponse(notFoundPayload(url.pathname), { status: 404 });

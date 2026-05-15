@@ -11,13 +11,33 @@ async function readJson(response) {
   return JSON.parse(await response.text());
 }
 
-test("GET /api/issue/latest returns the generated issue JSON", async () => {
-  const response = await worker.fetch(new Request("https://example.test/api/issue/latest"));
+test("GET /api/issue/latest returns the generated issue JSON for the epoch date", async () => {
+  const response = await worker.fetch(new Request("https://example.test/api/issue/latest?date=2026-05-15"));
   const data = await readJson(response);
 
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("content-type"), "application/json; charset=utf-8");
   assert.deepEqual(data, generatedIssue);
+});
+
+test("GET /api/issue/latest can generate a later quarter by request date", async () => {
+  const response = await worker.fetch(new Request("https://example.test/api/issue/latest?date=2026-05-16"));
+  const data = await readJson(response);
+
+  assert.equal(response.status, 200);
+  assert.equal(data.period.label, "洪武1年第2季度");
+  assert.equal(data.period.start_label, "洪武1年4月");
+  assert.equal(data.period.end_label, "洪武1年6月");
+  assert.notDeepEqual(data, generatedIssue);
+});
+
+test("GET /api/issue/latest rejects invalid request dates", async () => {
+  const response = await worker.fetch(new Request("https://example.test/api/issue/latest?date=2026-99-99"));
+  const data = await readJson(response);
+
+  assert.equal(response.status, 400);
+  assert.equal(data.ok, false);
+  assert.equal(data.error, "invalid_date");
 });
 
 test("GET /health returns service metadata", async () => {
