@@ -113,6 +113,16 @@ def test_quarterly_issue_includes_opinion_section():
     assert len(opinion["body"]) >= 120
 
 
+def test_disaster_lead_removes_dangling_source_fragment():
+    engine = NewsroomEngine()
+    issue = engine.generate_issue(datetime(2026, 5, 16, tzinfo=TIMEZONE_CST), 3)
+    data = json.loads(engine.issue_to_json(issue, pretty=False))
+
+    assert data["lead"]["headline"] == "永新州（今江西永新）大雨、涝水灾"
+    assert data["lead"]["body"].endswith("入鱼台。")
+    assert "（《" not in data["lead"]["body"]
+
+
 def test_editorial_quality_controls_apply():
     engine = NewsroomEngine()
     issue = engine.generate_issue(datetime(2026, 5, 15, tzinfo=TIMEZONE_CST), 3)
@@ -139,6 +149,7 @@ if __name__ == "__main__":
     test_supplementary_articles_are_era_aware()
     test_quarterly_issue_does_not_read_like_no_news()
     test_quarterly_issue_includes_opinion_section()
+    test_disaster_lead_removes_dangling_source_fragment()
     test_editorial_quality_controls_apply()
     print("✓ 独立 HTML 生成会移除运行时配置脚本")
     print("✓ 季报生成达到最低文章数")

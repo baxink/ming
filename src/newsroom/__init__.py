@@ -277,6 +277,7 @@ def _clean_disaster_desc(raw: str) -> str:
     desc = re.sub(r'[12]\.\d*\.?\s*', '', raw)
     desc = re.sub(r'[①②③④⑤⑥⑦⑧⑨⑩]', '', desc)
     desc = re.sub(r'（[^）]*《[^》]*》[^）]*）', '', desc)
+    desc = re.sub(r'（《[^。！？]*$', '', desc)
     desc = desc.strip()
     if len(desc) > 220:
         desc = desc[:220] + "…"

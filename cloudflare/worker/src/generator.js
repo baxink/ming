@@ -188,6 +188,7 @@ function cleanDisasterDesc(raw) {
     .replace(/[12]\.\d*\.?\s*/g, "")
     .replace(/[①②③④⑤⑥⑦⑧⑨⑩]/g, "")
     .replace(/（[^）]*《[^》]*》[^）]*）/g, "")
+    .replace(/（《[^。！？]*$/g, "")
     .trim();
   return desc.length > 220 ? `${desc.slice(0, 220)}…` : desc;
 }

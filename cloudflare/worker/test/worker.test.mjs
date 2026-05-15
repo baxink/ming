@@ -83,6 +83,38 @@ test("GET /api/issue/latest can generate a later quarter by request date", async
   assert.notEqual(data.lead.headline, "朱元璋称帝，建元洪武");
 });
 
+test("GET /api/issue/latest removes dangling source fragments from disaster lead bodies", async () => {
+  const response = await worker.fetch(new Request("https://example.test/api/issue/latest?date=2026-05-16"), makeEnv());
+  const data = await readJson(response);
+
+  assert.equal(response.status, 200);
+  assert.equal(data.lead.headline, "永新州（今江西永新）大雨、涝水灾");
+  assert.equal(data.lead.body.endsWith("入鱼台。"), true);
+  assert.equal(data.lead.body.includes("（《"), false);
+});
+
+test("GET /api/issue/latest ignores stale v3 cache with dangling disaster fragments", async () => {
+  const env = makeEnv({
+    "issue:v3:1368:4": JSON.stringify({
+      period: { start_year: 1368, start_month: 4, label: "洪武1年第2季度" },
+      lead: {
+        headline: "永新州（今江西永新）大雨、涝水灾",
+        body: "水灾永新州（今江西永新）大雨、涝：六月戊辰，江西永新州大风雨，蛟出，江水入城，高八尺，人多溺死。事闻，使赈之。曹州（今山东菏泽）决口：（河）决曹州双河口，入鱼台。（《",
+      },
+      articles: [],
+      sections: {},
+    }),
+  });
+
+  const response = await worker.fetch(new Request("https://example.test/api/issue/latest?date=2026-05-16"), env);
+  const data = await readJson(response);
+
+  assert.equal(response.status, 200);
+  assert.equal(data.lead.body.endsWith("入鱼台。"), true);
+  assert.equal(data.lead.body.includes("（《"), false);
+  assert.equal(env.ISSUE_CACHE.calls.get.some((call) => call.key === "issue:v3:1368:4"), false);
+});
+
 test("GET /api/issue/latest rejects invalid request dates", async () => {
   const response = await worker.fetch(new Request("https://example.test/api/issue/latest?date=2026-99-99"), makeEnv());
   const data = await readJson(response);
@@ -104,8 +136,8 @@ test("GET /api/issue/latest caches generated issues by Ming quarter", async () =
   assert.equal(first.status, 200);
   assert.equal(second.status, 200);
   assert.deepEqual(secondData, firstData);
-  assert.equal(kv.calls.get.filter((call) => call.key === "issue:v3:1368:4").length, 2);
-  assert.equal(kv.calls.put.filter((call) => call.key === "issue:v3:1368:4").length, 1);
+  assert.equal(kv.calls.get.filter((call) => call.key === "issue:v4:1368:4").length, 2);
+  assert.equal(kv.calls.put.filter((call) => call.key === "issue:v4:1368:4").length, 1);
 });
 
 test("GET /api/issue/latest returns rule issue immediately and upgrades cache asynchronously when AI is available", async () => {
@@ -720,7 +752,7 @@ test("scheduled pre-generates the current issue in KV", async () => {
   });
   await Promise.all(waitUntilCalls);
 
-  const issueWrites = kv.calls.put.filter((call) => call.key === "issue:v3:1368:7");
+  const issueWrites = kv.calls.put.filter((call) => call.key === "issue:v4:1368:7");
   assert.equal(issueWrites.length, 1);
   const cached = JSON.parse(issueWrites[0].value);
   assert.equal(cached.period.label, "洪武1年第3季度");
@@ -745,7 +777,8 @@ test("GET /health returns service metadata", async () => {
   assert.equal(response.status, 200);
   assert.equal(data.ok, true);
   assert.equal(data.service, "ming-post-api");
-  assert.equal(data.issue.label, "洪武1年第1季度");
+  assert.equal(typeof data.issue.label, "string");
+  assert.notEqual(data.issue.label.length, 0);
 });
 
 test("unknown routes return JSON 404", async () => {

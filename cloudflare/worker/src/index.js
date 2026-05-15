@@ -1,7 +1,7 @@
 import { generateIssue } from "./generator.js";
 import { enhanceIssueOpinion } from "./opinion-ai.js";
 
-const CACHE_VERSION = "v3";
+const CACHE_VERSION = "v4";
 const AI_UPGRADE_ATTEMPTS = 2;
 const HISTORY_DATA_KEYS = {
   timeline: "data:v1:ming:timeline",
