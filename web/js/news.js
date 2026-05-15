@@ -139,6 +139,7 @@ function configuredIssueUrls() {
 
   if (apiBaseUrl) {
     urls.push(`${apiBaseUrl}/api/issue/latest`);
+    return urls;
   }
 
   urls.push('data/issue.json');
@@ -172,7 +173,7 @@ function loadIssue(urls) {
           <div class="icon">📰</div>
           <p>报纸数据加载失败</p>
           <p style="font-size:12px;margin-top:8px;color:#999;">
-            请先运行 <code>python generate_news.py</code> 生成今日报纸<br>
+            请检查 Cloudflare Worker 或本地预览数据源<br>
             ${escapeHTML(err.message)}
           </p>
         </div>`;

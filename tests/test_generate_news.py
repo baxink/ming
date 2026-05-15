@@ -27,6 +27,23 @@ def test_generate_standalone_html_removes_runtime_config_script(tmp_path):
     assert json.dumps(data, ensure_ascii=False) in html
 
 
+def test_write_issue_outputs_does_not_write_worker_static_data(tmp_path):
+    data = {
+        "date": {"real_date": "2026年05月15日"},
+        "period": {"label": "洪武1年第1季度"},
+        "lead": None,
+        "sections": {},
+        "articles": [],
+    }
+    output_dir = tmp_path / "web"
+
+    generate_news.write_issue_outputs(data, str(output_dir), str(tmp_path))
+
+    assert (output_dir / "data" / "issue.json").exists()
+    assert not (tmp_path / "cloudflare" / "worker" / "data" / "issue.json").exists()
+    assert not (tmp_path / "cloudflare" / "worker" / "src" / "issue-data.js").exists()
+
+
 def test_generate_issue_has_minimum_articles():
     engine = NewsroomEngine()
     issue = engine.generate_issue(datetime(2026, 5, 15, tzinfo=TIMEZONE_CST), 3)
@@ -115,6 +132,7 @@ if __name__ == "__main__":
             return path
 
     test_generate_standalone_html_removes_runtime_config_script(TempPath())
+    test_write_issue_outputs_does_not_write_worker_static_data(TempPath())
     test_generate_issue_has_minimum_articles()
     test_next_real_day_generates_next_ming_quarter()
     test_issue_schema_validation_accepts_generated_issue()

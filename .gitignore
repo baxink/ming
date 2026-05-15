@@ -10,4 +10,5 @@ cloudflare/worker/.wrangler/
 data/raw/
 参考书籍/
 *.sqlite3*
+web/data/issue.json
 web/standalone.html

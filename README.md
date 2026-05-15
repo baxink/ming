@@ -26,7 +26,7 @@
 | 科举文教 | 会试殿试、翰林院、书院 | CBDB + timeline |
 | 灾异志 | 水旱蝗疫、地震、天文异象 | ming_disasters.json |
 | 人事任免 | 官员升迁、罢黜、致仕 | CBDB |
-| 评论 | 时事述评 | 历史典籍 + LLM 辅助 |
+| 评论 | 基于本季热点的时事述评 | 当季头条 + 阶段语境 |
 
 ## 目录结构
 
@@ -47,17 +47,18 @@
 │   ├── index.html      # 报纸首页
 │   ├── css/            # 华盛顿邮报风格样式
 │   ├── js/             # 动态渲染
-│   └── data/           # 报纸 JSON 数据
+│   └── config.js       # 线上 Worker API 地址
+├── cloudflare/worker/  # Worker API、运行时生成器、KV 绑定
 ├── tests/              # 测试
 ├── schemas/            # 数据模型
 ├── tools/              # 工具脚本
-└── generate_news.py    # 报纸生成脚本
+└── generate_news.py    # 本地预览生成脚本
 ```
 
 ## 快速开始
 
 ```bash
-# 生成今日报纸
+# 生成本地预览数据
 cd 明朝
 python generate_news.py
 
@@ -74,23 +75,20 @@ python -c "from src.world.time import real_time_status; print(real_time_status()
 ## 开发工作流
 
 ```bash
-# 1. 生成最新季报 JSON（同时写入 web/data 和 cloudflare/worker/data）
-python3 generate_news.py
-
-# 2. 启动本地静态预览
-python3 generate_news.py --serve
-
-# 3. 运行 Python 侧测试
+# 1. 运行 Python 侧测试
 python3 tests/test_generate_news.py
 python3 tests/test_time.py
 python3 tests/test_geography.py
 python3 tests/test_institutions.py
 
-# 4. 运行 Worker 测试
+# 2. 运行 Worker 测试
 cd cloudflare/worker && npm test
+
+# 3. 本地预览（可选；生成的 web/data/issue.json 不提交）
+python3 generate_news.py --serve
 ```
 
-`generate_news.py` 会在生成后使用 `jsonschema` 对 `issue.json` 执行正式校验；季报数据契约见 `schemas/issue.schema.json`。
+`generate_news.py` 只用于本地预览和回归测试；线上季报由 Cloudflare Worker 运行时生成。生成脚本会使用 `jsonschema` 对 `issue.json` 执行正式校验；季报数据契约见 `schemas/issue.schema.json`。
 
 季报以三个月为一个新闻周期。新闻编辑引擎会把当季明确史事、制度运行、军政压力和地方风险组织成完整版面；开国期、中期、晚明期会使用不同的历史语气和关注重点。
 
@@ -100,33 +98,57 @@ cd cloudflare/worker && npm test
 
 前端是 `web/` 下的静态站点。推送到 GitHub 后，在仓库设置里启用 GitHub Pages，并选择 GitHub Actions 作为来源；`.github/workflows/pages.yml` 会把 `web/` 发布出去。
 
-如果要让前端读取 Cloudflare Worker 数据，把 `web/config.js` 里的 `apiBaseUrl` 改成 Worker 域名，例如：
+前端通过 `web/config.js` 读取 Cloudflare Worker 数据：
 
 ```js
 window.MING_POST_CONFIG = {
-  apiBaseUrl: "https://ming-post-api.example.workers.dev",
+  apiBaseUrl: "https://ming-post-api.fanxj137616.workers.dev",
 };
 ```
 
-未配置 `apiBaseUrl` 时，前端会读取仓库内的 `web/data/issue.json`。
+未配置 `apiBaseUrl` 时，前端才会尝试读取本地预览文件 `web/data/issue.json`；该文件不提交到 GitHub。
 
 ### Cloudflare Worker 后端
 
 Worker 位于 `cloudflare/worker/`，当前提供：
 
 - `GET /health`：服务健康检查和当前期次摘要
-- `GET /api/issue/latest`：返回最新生成的季报 JSON
+- `GET /api/issue/latest`：按当天日期生成并返回最新季报 JSON
+- `GET /api/issue/latest?date=YYYY-MM-DD`：按指定真实日期生成季报，用于测试和回溯
 
-部署前先安装依赖并验证：
+Worker 从 Workers KV 读取历史数据：
+
+| KV key | 内容 |
+|--------|------|
+| `data:v1:ming:timeline` | `data/processed/timeline/ming_timeline.json` |
+| `data:v1:ming:disasters` | `data/processed/timeline/ming_disasters.json` |
+
+生成后的季报会缓存到 `issue:v2:<明朝年>:<起始月>`；定时触发器每天北京时间约 00:05 预生成当天季报。
+
+部署前先上传历史数据、安装依赖并验证：
 
 ```bash
 cd cloudflare/worker
 npm install
 npm test
+
+# 读取本地 .env.example 中的 CLOUDFLARE_API_TOKEN，不要提交该文件
+TOKEN="$(awk -F= '/^CLOUDFLARE_API_TOKEN=/ { v=$0; sub(/^[^=]*=/, "", v); gsub(/^[ \t]+|[ \t]+$/, "", v); print v; exit }' ../../.env.example)"
+
+NODE_TLS_REJECT_UNAUTHORIZED=0 CLOUDFLARE_API_TOKEN="$TOKEN" \
+  npx wrangler kv key put data:v1:ming:timeline \
+  --path ../../data/processed/timeline/ming_timeline.json \
+  --namespace-id 3c3cb6334e2a4e19b3e14d3dee8b610f --remote
+
+NODE_TLS_REJECT_UNAUTHORIZED=0 CLOUDFLARE_API_TOKEN="$TOKEN" \
+  npx wrangler kv key put data:v1:ming:disasters \
+  --path ../../data/processed/timeline/ming_disasters.json \
+  --namespace-id 3c3cb6334e2a4e19b3e14d3dee8b610f --remote
+
 npm run deploy
 ```
 
-Worker 当前读取 `cloudflare/worker/data/issue.json`。这个文件会在运行 `python generate_news.py` 时自动同步更新。
+Worker 不读取仓库里的静态 `issue.json`，也不需要本地每日生成后再上传 GitHub。
 
 ## 运行测试
 
