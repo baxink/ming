@@ -1,5 +1,7 @@
 import { generateIssue } from "./generator.js";
 
+const CACHE_VERSION = "v1";
+
 const JSON_HEADERS = {
   "content-type": "application/json; charset=utf-8",
   "access-control-allow-origin": "*",
@@ -46,8 +48,33 @@ function invalidDatePayload(date) {
   };
 }
 
+function issueCacheKey(issue) {
+  return `issue:${CACHE_VERSION}:${issue.period.start_year}:${issue.period.start_month}`;
+}
+
+async function cachedIssue(env, date) {
+  const issue = generateIssue(date);
+  const cache = env?.ISSUE_CACHE;
+  if (!cache) return issue;
+
+  const key = issueCacheKey(issue);
+  const cached = await cache.get(key, "json");
+  if (cached) return cached;
+
+  await cache.put(key, JSON.stringify(issue));
+  return issue;
+}
+
+async function preGenerateCurrentIssue(env, scheduledTime) {
+  const date = scheduledTime ? new Date(scheduledTime).toISOString().slice(0, 10) : undefined;
+  const issue = generateIssue(date);
+  const cache = env?.ISSUE_CACHE;
+  if (cache) await cache.put(issueCacheKey(issue), JSON.stringify(issue));
+  return issue;
+}
+
 export default {
-  async fetch(request) {
+  async fetch(request, env) {
     const url = new URL(request.url);
 
     if (request.method === "OPTIONS") {
@@ -62,14 +89,14 @@ export default {
     }
 
     if (url.pathname === "/" || url.pathname === "/health") {
-      const issue = generateIssue();
+      const issue = await cachedIssue(env);
       return jsonResponse(healthPayload(issue));
     }
 
     if (url.pathname === "/api/issue" || url.pathname === "/api/issue/latest") {
       const date = url.searchParams.get("date") || undefined;
       try {
-        return jsonResponse(generateIssue(date));
+        return jsonResponse(await cachedIssue(env, date));
       } catch (error) {
         if (error instanceof Error && error.message.startsWith("Invalid date:")) {
           return jsonResponse(invalidDatePayload(date || ""), { status: 400, headers: { "cache-control": "no-store" } });
@@ -79,5 +106,14 @@ export default {
     }
 
     return jsonResponse(notFoundPayload(url.pathname), { status: 404 });
+  },
+
+  async scheduled(event, env, ctx) {
+    const task = preGenerateCurrentIssue(env, event?.scheduledTime);
+    if (ctx?.waitUntil) {
+      ctx.waitUntil(task);
+      return;
+    }
+    await task;
   },
 };

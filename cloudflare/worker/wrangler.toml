@@ -2,5 +2,12 @@ name = "ming-post-api"
 main = "src/index.js"
 compatibility_date = "2026-05-15"
 
+[triggers]
+crons = ["5 16 * * *"]
+
+[[kv_namespaces]]
+binding = "ISSUE_CACHE"
+id = "3c3cb6334e2a4e19b3e14d3dee8b610f"
+
 [observability]
 enabled = true

@@ -6,6 +6,7 @@ __pycache__/
 .venv/
 node_modules/
 cloudflare/worker/node_modules/
+cloudflare/worker/.wrangler/
 data/raw/
 参考书籍/
 *.sqlite3*
