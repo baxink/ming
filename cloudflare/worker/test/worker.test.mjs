@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import worker from "../src/index.js";
+
+const generatedIssue = JSON.parse(
+  readFileSync(new URL("../data/issue.json", import.meta.url), "utf8"),
+);
 
 async function readJson(response) {
   return JSON.parse(await response.text());
@@ -12,8 +17,7 @@ test("GET /api/issue/latest returns the generated issue JSON", async () => {
 
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("content-type"), "application/json; charset=utf-8");
-  assert.equal(data.period.issue_number, 1);
-  assert.equal(data.lead.headline, "朱元璋称帝，建元洪武");
+  assert.deepEqual(data, generatedIssue);
 });
 
 test("GET /health returns service metadata", async () => {

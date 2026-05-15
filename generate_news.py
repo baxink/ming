@@ -11,6 +11,7 @@
 输出:
     web/data/issue.json    — 报纸数据 JSON
     cloudflare/worker/data/issue.json — Worker API 数据副本
+    cloudflare/worker/src/issue-data.js — Worker 部署数据模块
     web/standalone.html    — 独立 HTML（含内联数据，可直接打开）
 """
 import sys
@@ -83,12 +84,23 @@ def write_json(data: dict, path: str):
     print(f"  ✓ JSON 数据写入: {path}")
 
 
+def write_worker_issue_module(data: dict, path: str):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    json_data = json.dumps(data, ensure_ascii=False)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(f"export const issue = {json_data};\n")
+    print(f"  ✓ Worker 数据模块写入: {path}")
+
+
 def write_issue_outputs(data: dict, out_dir: str, base_dir: str):
     web_json_path = os.path.join(out_dir, "data", "issue.json")
     write_json(data, web_json_path)
 
     worker_json_path = os.path.join(base_dir, "cloudflare", "worker", "data", "issue.json")
     write_json(data, worker_json_path)
+
+    worker_module_path = os.path.join(base_dir, "cloudflare", "worker", "src", "issue-data.js")
+    write_worker_issue_module(data, worker_module_path)
 
 
 def serve_directory(directory: str, port: int):
