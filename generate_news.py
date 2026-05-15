@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 """
-大明新闻月报 — 报纸生成脚本
+大明新闻季报 — 报纸生成脚本
 
 用法:
     python generate_news.py                    # 生成今日报纸
     python generate_news.py --date 2026-06-01  # 生成指定日期报纸
-    python generate_news.py --standalone       # 生成独立 HTML（可直接用浏览器打开）
+    python generate_news.py --standalone       # 生成本地独立 HTML 预览
     python generate_news.py --serve            # 启动本地服务器预览 web/
 
 输出:
     web/data/issue.json    — 报纸数据 JSON
     cloudflare/worker/data/issue.json — Worker API 数据副本
     cloudflare/worker/src/issue-data.js — Worker 部署数据模块
-    web/standalone.html    — 独立 HTML（含内联数据，可直接打开）
+    web/standalone.html    — 本地独立 HTML 预览（不提交）
 """
 import sys
 import os
@@ -151,7 +151,7 @@ def print_status(data: dict):
     d = data["date"]
     print(f"""
 ╔══════════════════════════════════════╗
-║       大 明 新 闻 月 报              ║
+║       大 明 新 闻 季 报              ║
 ║       THE MING POST                  ║
 ╠══════════════════════════════════════╣
 ║ 真实时间 : {d['real_date']:<25} ║
@@ -165,7 +165,7 @@ def print_status(data: dict):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="大明新闻月报 — 报纸生成器")
+    parser = argparse.ArgumentParser(description="大明新闻季报 — 报纸生成器")
     parser.add_argument("--date", type=str, default=None,
                         help="指定真实日期 (YYYY-MM-DD)，默认为今天")
     parser.add_argument("--window", type=int, default=3,
@@ -192,7 +192,7 @@ def main():
 
     now = parse_date(args.date) if args.date else datetime.now(TIMEZONE_CST)
 
-    print(f"📰 大明新闻月报 · 报纸生成器")
+    print(f"📰 大明新闻季报 · 报纸生成器")
     print(f"   真实时间: {now.strftime('%Y-%m-%d %H:%M %Z')}")
     print(f"   时间窗口: {args.window} 个月")
 

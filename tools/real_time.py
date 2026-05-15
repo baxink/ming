@@ -2,9 +2,9 @@
 """
 明朝模拟器 — 真实时间映射检查
 
-纪元:  2026年5月13日 00:00 CST = 明朝洪武元年正月
-速率:  1 真实日 = 2 模拟月（6 真实日 = 1 年）
-范围:  1368-1644，共 276 年 → 1656 真实日
+纪元:  2026年5月15日 00:00 CST = 明朝洪武元年正月
+速率:  1 真实日 = 1 明朝季度（3 模拟月，4 真实日 = 1 年）
+范围:  1368-1644，共 276 年 → 1104 真实日
 """
 import sys
 sys.path.insert(0, '/Users/fanxiaojun/Desktop/Design/明朝')
@@ -26,7 +26,7 @@ def main():
     print("═══════════════════════════════════════════")
     print(f"  当前真实时间:   {status['real_time']}")
     print(f"  纪元起点:       {EPOCH_REAL.strftime('%Y-%m-%d %H:%M')}")
-    print(f"  时间速率:       1 真实日 = {MONTHS_PER_REAL_DAY} 模拟月")
+    print(f"  时间速率:       1 真实日 = 1 明朝季度（{MONTHS_PER_REAL_DAY} 模拟月）")
     print(f"  ─────────────────────────────────────")
     print(f"  已过真实天数:   {status['elapsed_real_days']} 天")
     print(f"  已过模拟月数:   {status['elapsed_ming_months']} 月")
@@ -44,11 +44,11 @@ def main():
         print(f"  明朝灭亡 (1644) 预计: {real_end.strftime('%Y-%m-%d')}")
 
     print(f"\n  时间推进推算:")
-    print(f"    1 小时后   → 模拟 +{MONTHS_PER_REAL_DAY / 24:.1f} 月")
-    print(f"    12 小时后  → 模拟 +1 月")
-    print(f"    1 天后     → 模拟 +2 月")
-    print(f"    3 天后     → 模拟 +6 月（半年）")
-    print(f"    6 天后     → 模拟 +1 年")
+    print(f"    1 小时后   → 模拟 +{MONTHS_PER_REAL_DAY / 24:.2f} 月")
+    print(f"    8 小时后   → 模拟 +1 月")
+    print(f"    1 天后     → 模拟 +3 月（1 季度）")
+    print(f"    2 天后     → 模拟 +6 月（半年）")
+    print(f"    4 天后     → 模拟 +1 年")
 
 
 if __name__ == "__main__":

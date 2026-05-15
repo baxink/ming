@@ -6,7 +6,7 @@
 - 月、季、年推进
 - 特殊事件按日处理
 - 农时、漕运季、征税季、会试秋审等制度周期
-- 真实时间到明朝月份的映射（纪元: 2026-05-15，每天=2个月）
+- 真实时间到明朝月份的映射（纪元: 2026-05-15，每天=1季度）
 """
 from dataclasses import dataclass, field
 from enum import Enum
@@ -161,7 +161,7 @@ EMPERORS = [
 
 # === 真实时间 → 明朝时间映射 ===
 # 纪元: 2026-05-15 00:00 CST = 洪武元年正月
-# 速率: 1 真实日 = 2 模拟月（即 6 真实日 = 1 模拟年）
+# 速率: 1 真实日 = 3 模拟月（即 4 真实日 = 1 模拟年）
 
 EPOCH_REAL = datetime(2026, 5, 15, 0, 0, 0, tzinfo=timezone(timedelta(hours=8)))
 EPOCH_MING_YEAR = 1368
@@ -170,9 +170,9 @@ MING_END_YEAR = 1644
 MING_END_MONTH = 4     # 崇祯十七年三月 ≈ 1644年4月
 TIMEZONE_CST = timezone(timedelta(hours=8))
 
-# 1 真实日 = 2 模拟月
-MONTHS_PER_REAL_DAY = 2
-# 完整明朝跨度: 276 年 = 3312 个月 → 1656 真实日
+# 1 真实日 = 1 明朝季度
+MONTHS_PER_REAL_DAY = 3
+# 完整明朝跨度: 276 年 = 3312 个月 → 1104 真实日
 TOTAL_MING_MONTHS = (MING_END_YEAR - EPOCH_MING_YEAR) * 12 + MING_END_MONTH - EPOCH_MING_MONTH
 
 
@@ -183,10 +183,10 @@ def real_time_now() -> datetime:
 def elapsed_ming_months(now: datetime = None) -> float:
     if now is None:
         now = real_time_now()
-    delta_seconds = (now - EPOCH_REAL).total_seconds()
-    if delta_seconds < 0:
+    delta_days = (now.date() - EPOCH_REAL.date()).days
+    if delta_days < 0:
         return 0.0
-    return (delta_seconds / 86400.0) * MONTHS_PER_REAL_DAY
+    return float(delta_days * MONTHS_PER_REAL_DAY)
 
 
 def elapsed_days_since_epoch(now: datetime = None) -> int:
@@ -249,4 +249,3 @@ def real_time_status() -> dict:
         "real_days_remaining": round(days_remaining, 1),
         "ming_years_remaining": round(months_remaining / 12, 1),
     }
-

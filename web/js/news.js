@@ -1,5 +1,5 @@
 /**
- * 大明新闻月报 — 华盛顿邮报风格渲染引擎
+ * 大明新闻季报 — 华盛顿邮报风格渲染引擎
  */
 
 const SECTION_ORDER = ['朝政要闻', '边关军事', '经济民生', '科举文教', '灾异志', '人事任免'];
@@ -84,7 +84,7 @@ function renderNewspaper(issue) {
   document.getElementById('periodLabel').textContent = period.label || '';
   document.getElementById('periodRange').textContent = `${period.start_label || ''}—${period.end_label || ''}`;
   document.getElementById('issueNumber').textContent = period.issue_number ? `第 ${period.issue_number} 期` : '';
-  document.title = `大明新闻月报 — ${period.label || `${d.ming_reign || ''}${d.ming_year || ''}年`}`;
+  document.title = `大明新闻季报 — ${period.label || `${d.ming_reign || ''}${d.ming_year || ''}年`}`;
 
   if (issue.editorial_note) {
     document.getElementById('footerNote').textContent = issue.editorial_note;

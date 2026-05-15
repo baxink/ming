@@ -36,6 +36,24 @@ def test_generate_issue_has_minimum_articles():
     assert data["period"]["label"] == "洪武1年第1季度"
 
 
+def test_next_real_day_generates_next_ming_quarter():
+    engine = NewsroomEngine()
+    same_day_issue = engine.generate_issue(datetime(2026, 5, 15, 18, tzinfo=TIMEZONE_CST), 3)
+    same_day_data = json.loads(engine.issue_to_json(same_day_issue, pretty=False))
+    assert same_day_data["date"]["ming_month"] == 1
+    assert same_day_data["period"]["start_label"] == "洪武1年1月"
+    assert same_day_data["period"]["end_label"] == "洪武1年3月"
+
+    issue = engine.generate_issue(datetime(2026, 5, 16, tzinfo=TIMEZONE_CST), 3)
+    data = json.loads(engine.issue_to_json(issue, pretty=False))
+
+    assert data["date"]["ming_month"] == 4
+    assert data["period"]["label"] == "洪武1年第2季度"
+    assert data["period"]["start_label"] == "洪武1年4月"
+    assert data["period"]["end_label"] == "洪武1年6月"
+    assert "1 真实日对应 1 明朝季度" in data["editorial_note"]
+
+
 def test_issue_schema_validation_accepts_generated_issue():
     engine = NewsroomEngine()
     data = generate_news.generate_issue_data(engine, datetime(2026, 5, 15, tzinfo=TIMEZONE_CST), 3)
@@ -70,12 +88,13 @@ if __name__ == "__main__":
 
     test_generate_standalone_html_removes_runtime_config_script(TempPath())
     test_generate_issue_has_minimum_articles()
+    test_next_real_day_generates_next_ming_quarter()
     test_issue_schema_validation_accepts_generated_issue()
     test_supplementary_articles_are_era_aware()
     test_editorial_quality_controls_apply()
     print("✓ 独立 HTML 生成会移除运行时配置脚本")
-    print("✓ 月报生成达到最低文章数")
-    print("✓ 月报 JSON 通过 schema 校验")
+    print("✓ 季报生成达到最低文章数")
+    print("✓ 季报 JSON 通过 schema 校验")
     print("✓ 补稿内容已按朝代阶段生成")
     print("✓ 编辑质量控制已生效")
     print("\n✅ 报纸生成脚本测试通过")

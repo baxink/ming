@@ -1,19 +1,19 @@
-# 大明新闻月报 (The Ming Post)
+# 大明新闻季报 (The Ming Post)
 
-> 以华盛顿邮报版面风格，按真实时间 1 日 = 明朝历史 2 月比例，每日呈现明朝历史新闻。
+> 以报纸版面呈现明朝历史新闻；1 个自然日对应明朝 1 个季度。
 
 ## 核心定位
 
-- **不是** 历史模拟器
+- **不是** 一次性原型
 - **不是** 学术数据库
-- **是** 以报纸形态呈现明朝 276 年历史的每日新闻刊物
+- **是** 面向线上发布的明朝历史新闻季报
 
 ## 时间映射
 
 ```
 纪元: 2026-05-15 00:00 CST = 洪武元年正月
-速率: 1 真实日 = 2 模拟月 (6 天 = 1 明朝年)
-跨度: 1368 — 1644，共 1656 真实日
+速率: 1 自然日 = 1 明朝季度 = 3 明朝月 (4 天 = 1 明朝年)
+跨度: 1368 — 1644，共 1104 真实日
 ```
 
 ## 版面
@@ -61,11 +61,7 @@
 cd 明朝
 python generate_news.py
 
-# 直接打开离线单文件预览
-python generate_news.py --standalone
-open web/standalone.html
-
-# 或启动本地静态预览
+# 启动本地静态预览
 python generate_news.py --serve
 
 # 指定日期生成
@@ -78,26 +74,23 @@ python -c "from src.world.time import real_time_status; print(real_time_status()
 ## 开发工作流
 
 ```bash
-# 1. 生成最新月报 JSON（同时写入 web/data 和 cloudflare/worker/data）
+# 1. 生成最新季报 JSON（同时写入 web/data 和 cloudflare/worker/data）
 python3 generate_news.py
 
-# 2. 生成离线单文件预览
-python3 generate_news.py --standalone
-
-# 3. 启动本地静态预览
+# 2. 启动本地静态预览
 python3 generate_news.py --serve
 
-# 4. 运行 Python 侧测试
+# 3. 运行 Python 侧测试
 python3 tests/test_generate_news.py
 python3 tests/test_time.py
 python3 tests/test_geography.py
 python3 tests/test_institutions.py
 
-# 5. 运行 Worker 测试
+# 4. 运行 Worker 测试
 cd cloudflare/worker && npm test
 ```
 
-`generate_news.py` 会在生成后使用 `jsonschema` 对 `issue.json` 执行正式校验；月报数据契约见 `schemas/issue.schema.json`。
+`generate_news.py` 会在生成后使用 `jsonschema` 对 `issue.json` 执行正式校验；季报数据契约见 `schemas/issue.schema.json`。
 
 当某季度可精确落月的史料不足时，新闻编辑引擎会按朝代阶段自动补入背景稿，确保每期至少形成完整报纸版面，且开国期、中期、晚明期的补稿语气与关注点会有所区别。
 
@@ -122,7 +115,7 @@ window.MING_POST_CONFIG = {
 Worker 位于 `cloudflare/worker/`，当前提供：
 
 - `GET /health`：服务健康检查和当前期次摘要
-- `GET /api/issue/latest`：返回最新生成的月报 JSON
+- `GET /api/issue/latest`：返回最新生成的季报 JSON
 
 部署前先安装依赖并验证：
 
@@ -154,6 +147,6 @@ cd cloudflare/worker && npm test
 - **地理数据**: CBDB 行政地理
 - **制度资料**: 《大明会典》《明史·职官志》
 
-## 许可证
+## 运营说明
 
-本项目仅用于学术研究与教育目的。历史数据来源于公开学术数据库和古籍文献。
+这是一个线上发布项目。仓库只保留运行、部署和维护必需文件；本地生成的预览文件、密钥、原始私有资料和临时产物不进入 GitHub。

@@ -1,5 +1,5 @@
 """
-大明新闻月报 — 新闻编辑引擎
+大明新闻季报 — 新闻编辑引擎
 
 负责：
 - 从时间线数据中提取当前明朝时间窗内的事件
@@ -21,7 +21,7 @@ EPOCH_MING_YEAR = 1368
 EPOCH_MING_MONTH = 1
 MING_END_YEAR = 1644
 MING_END_MONTH = 4
-MONTHS_PER_REAL_DAY = 2
+MONTHS_PER_REAL_DAY = 3
 ISSUE_MONTH_SPAN = 3
 
 REIGN_PERIODS = [
@@ -328,10 +328,10 @@ class NewsroomEngine:
         self.disasters = _load_json("timeline/ming_disasters.json")
 
     def _elapsed_ming_months(self, now: datetime) -> float:
-        delta_seconds = (now - EPOCH_REAL).total_seconds()
-        if delta_seconds < 0:
+        delta_days = (now.date() - EPOCH_REAL.date()).days
+        if delta_days < 0:
             return 0.0
-        return (delta_seconds / 86400.0) * MONTHS_PER_REAL_DAY
+        return float(delta_days * MONTHS_PER_REAL_DAY)
 
     def _real_to_ming(self, now: datetime) -> tuple[int, int]:
         months = self._elapsed_ming_months(now)
@@ -446,7 +446,7 @@ class NewsroomEngine:
                 headline="本季度史料稀疏，朝廷日常政务延续",
                 subhead="本期只收录确有时间指向的事件，背景栏用于说明制度环境。",
                 dateline="京师 —",
-                body="本报按两个月为一季度编排，只纳入与当期相符的年表和灾异记录。若本季度大事较少，版面以背景说明补足，不把无明确月份的记录硬归入当期。",
+                body="本报按一个自然日对应一个明朝季度编排，只纳入与当期相符的年表和灾异记录。若本季度大事较少，版面以背景说明补足，不把无明确月份的记录硬归入当期。",
                 event_type="background",
                 severity="",
                 location="京师",
@@ -678,7 +678,7 @@ class NewsroomEngine:
             articles=remaining,
             sections=sections,
             editorial_note=(
-                f"本报以 1 真实日对应 2 明朝月，每期覆盖 3 个月，为一个季度。"
+                f"本报以 1 真实日对应 1 明朝季度，每期覆盖 3 个月，为一个季度。"
                 f"本期对应 {period.start_label} 至 {period.end_label}。"
             )
         )
