@@ -2,7 +2,7 @@
  * 大明新闻季报 — 华盛顿邮报风格渲染引擎
  */
 
-const SECTION_ORDER = ['朝政要闻', '边关军事', '经济民生', '科举文教', '灾异志', '人事任免'];
+const SECTION_ORDER = ['朝政要闻', '边关军事', '经济民生', '科举文教', '灾异志', '人事任免', '评论'];
 
 function escapeHTML(value) {
   return String(value || '')

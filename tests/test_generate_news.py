@@ -79,6 +79,23 @@ def test_quarterly_issue_does_not_read_like_no_news():
         assert phrase not in text
 
 
+def test_quarterly_issue_includes_opinion_section():
+    engine = NewsroomEngine()
+    issue = engine.generate_issue(datetime(2026, 5, 15, tzinfo=TIMEZONE_CST), 3)
+    data = json.loads(engine.issue_to_json(issue, pretty=False))
+
+    assert data["lead"]["section"] != "评论"
+    opinions = data["sections"].get("评论", [])
+    assert len(opinions) == 1
+
+    opinion = opinions[0]
+    assert opinion["event_type"] == "opinion"
+    assert opinion["category"] == "commentary"
+    assert data["period"]["start_label"] in opinion["body"]
+    assert data["period"]["end_label"] in opinion["body"]
+    assert len(opinion["body"]) >= 120
+
+
 def test_editorial_quality_controls_apply():
     engine = NewsroomEngine()
     issue = engine.generate_issue(datetime(2026, 5, 15, tzinfo=TIMEZONE_CST), 3)
@@ -103,6 +120,7 @@ if __name__ == "__main__":
     test_issue_schema_validation_accepts_generated_issue()
     test_supplementary_articles_are_era_aware()
     test_quarterly_issue_does_not_read_like_no_news()
+    test_quarterly_issue_includes_opinion_section()
     test_editorial_quality_controls_apply()
     print("✓ 独立 HTML 生成会移除运行时配置脚本")
     print("✓ 季报生成达到最低文章数")

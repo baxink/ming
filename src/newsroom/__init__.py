@@ -114,9 +114,10 @@ SECTION_MAP = {
     "科举文教": ["examination", "culture", "cultural", "academy", "art", "literature"],
     "灾异志": ["disaster", "natural_disaster"],
     "人事任免": ["personnel", "appointment", "dismissal"],
+    "评论": ["commentary"],
 }
 
-SECTION_ORDER = ["朝政要闻", "边关军事", "经济民生", "科举文教", "灾异志", "人事任免"]
+SECTION_ORDER = ["朝政要闻", "边关军事", "经济民生", "科举文教", "灾异志", "人事任免", "评论"]
 SECTION_TARGETS = {
     "朝政要闻": {"min": 1, "max": 3},
     "边关军事": {"min": 1, "max": 2},
@@ -124,6 +125,7 @@ SECTION_TARGETS = {
     "科举文教": {"min": 1, "max": 2},
     "灾异志": {"min": 1, "max": 2},
     "人事任免": {"min": 1, "max": 2},
+    "评论": {"min": 1, "max": 1},
 }
 
 
@@ -627,6 +629,8 @@ class NewsroomEngine:
             score += 4
         if article.event_type == "background":
             score -= 10
+        if article.event_type == "opinion":
+            score -= 1000
         return score
 
     def _dedupe_articles(self, articles: list[Article]) -> list[Article]:
@@ -659,10 +663,39 @@ class NewsroomEngine:
     def _pick_lead(self, articles: list[Article]) -> tuple[Article | None, list[Article]]:
         if not articles:
             return None, []
-        ranked = sorted(articles, key=self._article_score, reverse=True)
+        lead_candidates = [a for a in articles if a.section != "评论" and a.event_type != "opinion"]
+        ranked = sorted(lead_candidates or articles, key=self._article_score, reverse=True)
         lead = ranked[0]
         remaining = [a for a in ranked if a != lead]
+        remaining.extend(a for a in articles if a not in ranked)
         return lead, remaining
+
+    def _opinion_article(self, period: PeriodMeta, articles: list[Article]) -> Article:
+        ctx = self._era_context(period.start_year)
+        lead = next((a for a in articles if a.section != "评论" and a.event_type != "opinion"), None)
+        focus_headline = lead.headline if lead else f"{ctx['phase']}政务"
+        body = (
+            f"本报社论认为，{period.start_label}至{period.end_label}这一季的关键，不只在于"
+            f"“{focus_headline}”，更在于新朝能否把号令转化为可持续的制度。"
+            f"{ctx['focus']}，朝廷若只重声威而轻户籍、赋役、仓储与学校，则政令虽出而地方难以承受。"
+            f"军务上，{ctx['military']}；民生上，{ctx['finance']}。"
+            f"因此，本季之治当以立法定制、安集民力为先，使开创之势不止于一时捷报，而能成为长久秩序。"
+        )
+        return Article(
+            id=f"OP_{period.start_year}_{period.start_month}",
+            section="评论",
+            headline=f"社论：{ctx['phase']}贵在立制安民",
+            subhead="本报评论本季政务轻重：立国之初，声威与制度须并行。",
+            dateline="本报评论 —",
+            byline="本报编辑部",
+            body=body,
+            event_type="opinion",
+            severity="",
+            location=ctx["capital"],
+            category="commentary",
+            sources=["明代制度资料", "明代大事年表"],
+            source_date=f"{period.start_label}—{period.end_label}",
+        )
 
     def _build_sections(self, articles: list[Article]) -> dict:
         sections = {}
@@ -687,6 +720,7 @@ class NewsroomEngine:
         existing_sections = {article.section for article in base_articles}
         supplement_articles = self._supplementary_articles(period, existing_sections)
         all_articles = self._dedupe_articles(base_articles + supplement_articles)
+        all_articles.append(self._opinion_article(period, all_articles))
         all_articles = self._limit_section_articles(all_articles)
 
         lead, remaining = self._pick_lead(all_articles)
