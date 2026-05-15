@@ -440,13 +440,14 @@ class NewsroomEngine:
                 ),
             ])
         elif len(timeline_articles) < 3:
+            ctx = self._era_context(period.start_year)
             articles.append(Article(
                 id=f"BG_{period.start_year}_{period.start_month}_CONTEXT",
                 section="朝政要闻",
-                headline="本季度史料稀疏，朝廷日常政务延续",
-                subhead="本期只收录确有时间指向的事件，背景栏用于说明制度环境。",
+                headline=f"本季朝政观察：{ctx['phase']}维持连续运转",
+                subhead="季报按三个月周期组织政务、军务与地方风险。",
                 dateline="京师 —",
-                body="本报按一个自然日对应一个明朝季度编排，只纳入与当期相符的年表和灾异记录。若本季度大事较少，版面以背景说明补足，不把无明确月份的记录硬归入当期。",
+                body=f"本期对应{period.start_label}至{period.end_label}。朝廷日常政务围绕{ctx['focus']}展开，军务上则需持续面对{ctx['military']}。季报以季度为单位呈现制度运行和地方反馈，让读者看到单条大事之外的政治节奏。",
                 event_type="background",
                 severity="",
                 location="京师",
@@ -522,26 +523,47 @@ class NewsroomEngine:
         missing_sections = [name for name in SECTION_ORDER if name not in existing_sections]
         ctx = self._era_context(period.start_year)
         section_templates = {
+            "朝政要闻": (
+                f"本季朝局：{ctx['phase']}持续推进政务整饬",
+                f"{ctx['focus']}，朝廷围绕中枢号令与地方执行展开连续治理。",
+                f"本期对应{period.start_label}至{period.end_label}。朝政线索集中在{ctx['focus']}；同时，{ctx['military']}。编辑部按季度梳理制度运行、军政压力与地方反馈，呈现这一阶段的政治节奏。",
+                "dynasty",
+                "background",
+            ),
+            "边关军事": (
+                f"边防观察：{ctx['military']}",
+                "军务栏目以季度为单位追踪边防、卫所和战事压力。",
+                f"对{period.start_label}至{period.end_label}这一季而言，军事形势不只取决于单次战报，也取决于军粮、兵员、转运和地方卫所能否承受持续调度。{ctx['military']}，仍是朝廷必须反复评估的安全议题。",
+                "military",
+                "military",
+            ),
             "经济民生": (
                 f"{ctx['phase']}：赋役、仓储与漕运仍为民生命脉",
-                f"本季度虽未见足以入选的具体财政条目，但{ctx['finance']}。",
+                f"{ctx['finance']}，构成本季民生报道的核心背景。",
                 f"户部与地方州县仍需围绕田赋、漕粮、仓储和转输维持日常运作。对{period.start_label}至{period.end_label}这一时段而言，民生稳定不仅取决于收成，也取决于地方官能否把赋役、救济和运输安排在可承受范围内。{ctx['focus']}，财政栏目需持续观察具体征派和仓储记录。",
                 "fiscal",
                 "economy",
             ),
             "科举文教": (
                 f"{ctx['phase']}下，取士与文教维系官僚秩序",
-                f"本季度未见明确月份的科举条目，但{ctx['education']}。",
+                f"{ctx['education']}，文教秩序为新一季政务提供官僚基础。",
                 f"礼部、翰林院与地方学校共同维持文教秩序。随着{ctx['focus']}，朝廷仍需依靠稳定的科举与文书系统，把地方士人纳入可管理的官僚网络。",
                 "examination",
                 "education",
             ),
             "灾异志": (
                 f"灾异观察：{ctx['phase']}的地方风险仍需留档",
-                f"本季度史料中未检出可精确落月的灾异事件，但{ctx['disaster']}。",
-                f"灾异志栏目本期保留季度背景说明。若后续史料出现灾荒、蠲免或赈济条目，将与{ctx['finance']}等财政线索并置观察，避免把灾异孤立为单一地方事件。",
+                f"{ctx['disaster']}，灾异栏目按季度追踪地方风险。",
+                f"灾异志栏目本期关注地方风险与财政承压之间的关系。灾荒、蠲免或赈济条目一旦出现，将与{ctx['finance']}等财政线索并置观察，避免把灾异孤立为单一地方事件。",
                 "disaster",
                 "disaster",
+            ),
+            "人事任免": (
+                f"人事观察：{ctx['phase']}倚重官僚与军功班底",
+                "人事任免反映朝廷如何把季度政务压力分派到中枢和地方。",
+                f"在{period.start_label}至{period.end_label}这一季，官员升黜、差遣和文书责任构成政策落地的关键环节。{ctx['focus']}，朝廷必须依靠稳定的人事体系维持法令、赋役和军务的连续执行。",
+                "personnel",
+                "personnel",
             ),
         }
         for section in missing_sections:
@@ -568,10 +590,10 @@ class NewsroomEngine:
             supplements.append(Article(
                 id=f"SUP_{period.start_year}_{period.start_month}_CONTEXT",
                 section="朝政要闻",
-                headline=f"时局综述：{ctx['phase']}进入本季度观察窗口",
-                subhead=f"当季度落月史料不足时，报纸以阶段性背景和制度环境维持版面完整。",
+                headline=f"时局综述：{ctx['phase']}进入本季议程",
+                subhead=f"季报以三个月为观察单位，串联政务、军务、财政与地方风险。",
                 dateline=f"{ctx['capital']} —",
-                body=f"本期对应{period.start_label}至{period.end_label}。由于可精确落月的史料有限，编辑部以阶段性背景补足版面：{ctx['focus']}；同时，{ctx['military']}。在政务层面，{ctx['finance']}；在文教层面，{ctx['education']}。后续将继续从年表、灾异、人物与制度库中提取更细颗粒度的事件，逐步把背景稿替换为时效性更强的新闻稿。",
+                body=f"本期对应{period.start_label}至{period.end_label}。本季报道围绕{ctx['focus']}展开；同时，{ctx['military']}。在政务层面，{ctx['finance']}；在文教层面，{ctx['education']}。季报把单条史事、制度背景和地方风险放在同一季度内观察，呈现明朝政务运行的连续性。",
                 event_type="background",
                 severity="",
                 location=ctx["capital"],

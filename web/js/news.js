@@ -100,7 +100,7 @@ function renderNewspaper(issue) {
     content.innerHTML = `
       <div class="empty-state">
         <div class="icon">📰</div>
-        <p>本季度暂无可编排的历史记录</p>
+        <p>本季度数据尚未生成</p>
         <p style="font-size:12px;margin-top:8px;color:#999;">
           当前期次：${escapeHTML(period.label || '')}<br>
           时间范围：${escapeHTML(period.start_label || '')}—${escapeHTML(period.end_label || '')}

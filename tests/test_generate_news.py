@@ -68,6 +68,17 @@ def test_supplementary_articles_are_era_aware():
     assert "黄册" in text or "鱼鳞图册" in text
 
 
+def test_quarterly_issue_does_not_read_like_no_news():
+    engine = NewsroomEngine()
+    issue = engine.generate_issue(datetime(2026, 5, 18, tzinfo=TIMEZONE_CST), 3)
+    data = json.loads(engine.issue_to_json(issue, pretty=False))
+    text = json.dumps(data, ensure_ascii=False)
+
+    assert len(data["articles"]) + (1 if data.get("lead") else 0) >= 6
+    for phrase in ["史料稀疏", "未见", "暂无", "不足时", "无明确月份"]:
+        assert phrase not in text
+
+
 def test_editorial_quality_controls_apply():
     engine = NewsroomEngine()
     issue = engine.generate_issue(datetime(2026, 5, 15, tzinfo=TIMEZONE_CST), 3)
@@ -91,6 +102,7 @@ if __name__ == "__main__":
     test_next_real_day_generates_next_ming_quarter()
     test_issue_schema_validation_accepts_generated_issue()
     test_supplementary_articles_are_era_aware()
+    test_quarterly_issue_does_not_read_like_no_news()
     test_editorial_quality_controls_apply()
     print("✓ 独立 HTML 生成会移除运行时配置脚本")
     print("✓ 季报生成达到最低文章数")
