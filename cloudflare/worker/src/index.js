@@ -1,6 +1,7 @@
 import { generateIssue } from "./generator.js";
+import { enhanceIssueOpinion } from "./opinion-ai.js";
 
-const CACHE_VERSION = "v2";
+const CACHE_VERSION = "v3";
 const HISTORY_DATA_KEYS = {
   timeline: "data:v1:ming:timeline",
   disasters: "data:v1:ming:disasters",
@@ -89,13 +90,14 @@ async function loadHistoryData(env) {
 async function cachedIssue(env, date) {
   const cache = env?.ISSUE_CACHE;
   const historyData = await loadHistoryData(env);
-  const issue = generateIssue(date, historyData);
-  if (!cache) return issue;
+  const baseIssue = generateIssue(date, historyData);
+  if (!cache) return enhanceIssueOpinion(baseIssue, env);
 
-  const key = issueCacheKey(issue);
+  const key = issueCacheKey(baseIssue);
   const cached = await cache.get(key, "json");
   if (cached) return cached;
 
+  const issue = await enhanceIssueOpinion(baseIssue, env);
   await cache.put(key, JSON.stringify(issue));
   return issue;
 }
@@ -103,7 +105,8 @@ async function cachedIssue(env, date) {
 async function preGenerateCurrentIssue(env, scheduledTime) {
   const date = scheduledTime ? new Date(scheduledTime).toISOString().slice(0, 10) : undefined;
   const historyData = await loadHistoryData(env);
-  const issue = generateIssue(date, historyData);
+  const baseIssue = generateIssue(date, historyData);
+  const issue = await enhanceIssueOpinion(baseIssue, env);
   const cache = env?.ISSUE_CACHE;
   if (cache) await cache.put(issueCacheKey(issue), JSON.stringify(issue));
   return issue;

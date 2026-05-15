@@ -32,6 +32,16 @@ function makeKv(initial = {}) {
   };
 }
 
+function makeOpenAiFetch({ body, status = 200, calls = [] } = {}) {
+  return async (url, init = {}) => {
+    calls.push({ url: String(url), init });
+    return new Response(JSON.stringify(body), {
+      status,
+      headers: { "content-type": "application/json" },
+    });
+  };
+}
+
 function makeEnv(initial = {}) {
   return {
     ISSUE_CACHE: makeKv({
@@ -87,8 +97,57 @@ test("GET /api/issue/latest caches generated issues by Ming quarter", async () =
   assert.equal(first.status, 200);
   assert.equal(second.status, 200);
   assert.deepEqual(secondData, firstData);
-  assert.equal(kv.calls.get.filter((call) => call.key === "issue:v2:1368:4").length, 2);
-  assert.equal(kv.calls.put.filter((call) => call.key === "issue:v2:1368:4").length, 1);
+  assert.equal(kv.calls.get.filter((call) => call.key === "issue:v3:1368:4").length, 2);
+  assert.equal(kv.calls.put.filter((call) => call.key === "issue:v3:1368:4").length, 1);
+});
+
+test("GET /api/issue/latest enhances the opinion with OpenAI when configured", async () => {
+  const calls = [];
+  const env = {
+    ...makeEnv(),
+    OPENAI_API_KEY: "test-key",
+    OPENAI_MODEL: "gpt-5.4-mini",
+    OPENAI_FETCH: makeOpenAiFetch({
+      calls,
+      body: {
+        output_text: JSON.stringify({
+          headline: "社论：胜利不是秩序，财政才是疆土的边界",
+          subhead: "本报评论本季开国政治：头条之外，更要看朝廷能否把战果变成治理能力。",
+          body: "本季真正值得警惕的，不是捷报能否写入诏书，而是朝廷是否有能力把军事胜利转化为可征税、可供粮、可派官的地方秩序。围绕“朱元璋称帝，建元洪武”，新朝已经取得名分优势，但名分并不自动带来户籍、仓储和卫所。若北伐继续推进而财政、粮运和地方官缺位，朝廷得到的将不是稳定版图，而是一张需要长期输血的军事账单。下一季的关键，是制度能否跟上战线，而不是诏书写得多漂亮。",
+        }),
+      },
+    }),
+  };
+
+  const response = await worker.fetch(new Request("https://example.test/api/issue/latest?date=2026-05-15"), env);
+  const data = await readJson(response);
+  const opinion = data.sections["评论"][0];
+
+  assert.equal(response.status, 200);
+  assert.equal(calls.length, 1);
+  assert.equal(opinion.headline, "社论：胜利不是秩序，财政才是疆土的边界");
+  assert.equal(opinion.byline, "本报评论部");
+  assert.equal(opinion.event_type, "opinion");
+  assert.equal(opinion.category, "commentary");
+  assert.equal(opinion.sources.includes("OpenAI 生成评论"), true);
+  assert.match(opinion.body, /朱元璋称帝，建元洪武/);
+  assert.match(opinion.body, /财政/);
+});
+
+test("GET /api/issue/latest falls back to rule opinion when OpenAI fails", async () => {
+  const env = {
+    ...makeEnv(),
+    OPENAI_API_KEY: "test-key",
+    OPENAI_FETCH: makeOpenAiFetch({ status: 500, body: { error: { message: "model unavailable" } } }),
+  };
+
+  const response = await worker.fetch(new Request("https://example.test/api/issue/latest?date=2026-05-15"), env);
+  const data = await readJson(response);
+  const opinion = data.sections["评论"][0];
+
+  assert.equal(response.status, 200);
+  assert.equal(opinion.byline, "本报编辑部");
+  assert.equal(opinion.sources.includes("OpenAI 生成评论"), false);
 });
 
 test("scheduled pre-generates the current issue in KV", async () => {
@@ -103,7 +162,7 @@ test("scheduled pre-generates the current issue in KV", async () => {
   });
   await Promise.all(waitUntilCalls);
 
-  const issueWrites = kv.calls.put.filter((call) => call.key === "issue:v2:1368:7");
+  const issueWrites = kv.calls.put.filter((call) => call.key === "issue:v3:1368:7");
   assert.equal(issueWrites.length, 1);
   const cached = JSON.parse(issueWrites[0].value);
   assert.equal(cached.period.label, "洪武1年第3季度");

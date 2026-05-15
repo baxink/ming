@@ -2,6 +2,10 @@ name = "ming-post-api"
 main = "src/index.js"
 compatibility_date = "2026-05-15"
 
+[vars]
+OPENAI_API_BASE = "https://api.openai.com/v1"
+OPENAI_MODEL = "gpt-5.4-mini"
+
 [triggers]
 crons = ["5 16 * * *"]
 

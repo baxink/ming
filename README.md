@@ -123,7 +123,9 @@ Worker 从 Workers KV 读取历史数据：
 | `data:v1:ming:timeline` | `data/processed/timeline/ming_timeline.json` |
 | `data:v1:ming:disasters` | `data/processed/timeline/ming_disasters.json` |
 
-生成后的季报会缓存到 `issue:v2:<明朝年>:<起始月>`；定时触发器每天北京时间约 00:05 预生成当天季报。
+生成后的季报会缓存到 `issue:v3:<明朝年>:<起始月>`；定时触发器每天北京时间约 00:05 预生成当天季报。
+
+评论栏目会优先使用 OpenAI API 基于本季度热点新闻生成专业时评；如果没有配置 `OPENAI_API_KEY`、模型接口超时、返回格式不合法或内容未通过校验，Worker 会自动回退到内置规则评论，整期季报不会失败。
 
 部署前先上传历史数据、安装依赖并验证：
 
@@ -144,6 +146,10 @@ NODE_TLS_REJECT_UNAUTHORIZED=0 CLOUDFLARE_API_TOKEN="$TOKEN" \
   npx wrangler kv key put data:v1:ming:disasters \
   --path ../../data/processed/timeline/ming_disasters.json \
   --namespace-id 3c3cb6334e2a4e19b3e14d3dee8b610f --remote
+
+# 可选但推荐：配置 OpenAI 评论生成密钥。密钥只进 Cloudflare secret，不进 Git。
+NODE_TLS_REJECT_UNAUTHORIZED=0 CLOUDFLARE_API_TOKEN="$TOKEN" \
+  npx wrangler secret put OPENAI_API_KEY
 
 npm run deploy
 ```
