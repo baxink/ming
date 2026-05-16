@@ -13,6 +13,10 @@ function escapeHTML(value) {
     .replace(/'/g, '&#39;');
 }
 
+function cleanArticleText(value) {
+  return String(value || '').replace(/（《[^。！？]*$/g, '').trim();
+}
+
 function createArticleHTML(article, isLead = false) {
   const severityClass = article.severity || '';
   const badgeHTML = severityClass
@@ -31,7 +35,7 @@ function createArticleHTML(article, isLead = false) {
           ${article.byline ? `<span class="byline">${escapeHTML(article.byline)}</span>` : ''}
           ${sourceDate}
         </div>
-        <div class="body">${escapeHTML(article.body || '')}</div>
+        <div class="body">${escapeHTML(cleanArticleText(article.body))}</div>
       </article>`;
   }
 
@@ -44,7 +48,7 @@ function createArticleHTML(article, isLead = false) {
         ${sourceDate}
       </div>
       ${article.byline ? `<div class="byline">${escapeHTML(article.byline)}</div>` : ''}
-      ${article.body ? `<div class="body">${escapeHTML(article.body)}</div>` : ''}
+      ${article.body ? `<div class="body">${escapeHTML(cleanArticleText(article.body))}</div>` : ''}
     </article>`;
 }
 
