@@ -724,6 +724,36 @@ test("GET /api/issue/latest accepts commentary that cites a secondary quarterly 
   assert.equal(data._debug.ai.validationOk, true);
 });
 
+test("GET /api/issue/latest normalizes AI commentary into a sharper editorial frame", async () => {
+  const env = {
+    ...makeEnv(),
+    AI_MODEL: "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+    AI: {
+      run: makeWorkersAiRun({
+        body: {
+          response: {
+            headline: "洪武元年季度评论：战后秩序重建与权力结构",
+            subhead: "新朝立足未稳，真正的考验不在登基礼成，而在制度能否压住战后失序",
+            body: "本季度的新闻报道显示，朱元璋称帝，建元洪武之后，新朝正处于建立和巩固的关键时期。同时，北方元廷残余和各地卫所建设仍然是朝廷关注的重要问题。朝廷需要通过黄册、鱼鳞图册、里甲和赋役编审来重建财政秩序，也需要重点建设国子学、科举取士和礼制。综上所述，战后秩序重建与权力结构调整是当前的重要任务。",
+          },
+        },
+      }),
+    },
+  };
+
+  const response = await worker.fetch(new Request("https://example.test/api/issue/latest?date=2026-05-15&refresh=1"), env);
+  const data = await readJson(response);
+  const opinion = data.sections["评论"][0];
+
+  assert.equal(response.status, 200);
+  assert.equal(opinion.byline, "本报评论部");
+  assert.match(opinion.headline, /^社论：/);
+  assert.doesNotMatch(opinion.headline, /季度评论|综述|观察/);
+  assert.doesNotMatch(opinion.body, /本季度的新闻报道显示/);
+  assert.doesNotMatch(opinion.body, /综上所述/);
+  assert.ok(opinion.sources.includes("Cloudflare Workers AI 生成评论"));
+});
+
 test("GET /api/issue/latest falls back to rule opinion when OpenAI fails", async () => {
   const env = {
     ...makeEnv(),
