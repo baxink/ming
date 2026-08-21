@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 .env
 .env.example
+.env.deploy
 .venv/
 node_modules/
 cloudflare/worker/node_modules/
