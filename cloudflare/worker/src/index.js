@@ -1,7 +1,7 @@
 import { generateIssue } from "./generator.js";
 import { enhanceIssueOpinion } from "./opinion-ai.js";
 
-const CACHE_VERSION = "v4";
+const CACHE_VERSION = "v5";
 const AI_UPGRADE_ATTEMPTS = 2;
 const HISTORY_DATA_KEYS = {
   timeline: "data:v1:ming:timeline",
@@ -83,6 +83,14 @@ function canUpgradeOpinion(env) {
   );
 }
 
+function hasOpinionEvidence(issue) {
+  return [issue.lead, ...(issue.articles || [])].some((article) =>
+    article?.content_type === "historical_report" && article.verification_status === "verified" &&
+    Array.isArray(article.sources) && article.sources.some((source) => String(source).trim()) &&
+    typeof article.source_excerpt === "string" && article.source_excerpt.trim(),
+  );
+}
+
 function hasAiOpinion(issue) {
   const opinion = issue?.sections?.["评论"]?.[0] || issue?.articles?.find((article) => article.section === "评论");
   const sources = opinion?.sources || [];
@@ -110,6 +118,7 @@ async function loadHistoryData(env) {
 }
 
 async function upgradeIssueOpinion(cache, key, baseIssue, env) {
+  if (!hasOpinionEvidence(baseIssue)) return { issue: baseIssue, debug: null, upgraded: false };
   let lastResult = null;
   for (let attempt = 0; attempt < AI_UPGRADE_ATTEMPTS; attempt += 1) {
     const result = await enhanceIssueOpinion(baseIssue, env);
@@ -143,7 +152,7 @@ async function cachedIssue(env, date, options = {}) {
   if (!bypassCache) {
     const cached = await cache.get(key, "json");
     if (cached) {
-      if (!includeDebug && !hasAiOpinion(cached) && canUpgradeOpinion(env) && typeof waitUntil === "function") {
+      if (!includeDebug && !hasAiOpinion(cached) && hasOpinionEvidence(cached) && canUpgradeOpinion(env) && typeof waitUntil === "function") {
         waitUntil(upgradeIssueOpinion(cache, key, cached, env));
       }
       if (!includeDebug) return cached;
@@ -165,14 +174,14 @@ async function cachedIssue(env, date, options = {}) {
   }
 
   await cache.put(key, JSON.stringify(baseIssue));
-  if (canUpgradeOpinion(env) && typeof waitUntil === "function") {
+  if (hasOpinionEvidence(baseIssue) && canUpgradeOpinion(env) && typeof waitUntil === "function") {
     waitUntil(upgradeIssueOpinion(cache, key, baseIssue, env));
   }
   return baseIssue;
 }
 
 async function preGenerateCurrentIssue(env, scheduledTime) {
-  const date = scheduledTime ? new Date(scheduledTime).toISOString().slice(0, 10) : undefined;
+  const date = scheduledTime ? new Date(scheduledTime + 8 * 60 * 60 * 1000).toISOString().slice(0, 10) : undefined;
   const historyData = await loadHistoryData(env);
   const baseIssue = generateIssue(date, historyData);
   const cache = env?.ISSUE_CACHE;

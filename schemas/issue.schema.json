@@ -3,11 +3,11 @@
   "$id": "issue.schema.json",
   "title": "Ming Post Issue",
   "type": "object",
-  "required": ["date", "period", "articles", "sections"],
+  "required": ["date", "period", "articles", "sections", "annual_events"],
   "definitions": {
     "article": {
       "type": "object",
-      "required": ["id", "section", "headline"],
+      "required": ["id", "section", "headline", "content_type", "time_precision", "verification_status", "sources", "source_excerpt", "editorial_note", "background", "later_effects"],
       "properties": {
         "id": {"type": "string", "minLength": 1},
         "section": {"type": "string", "minLength": 1},
@@ -24,7 +24,14 @@
           "type": "array",
           "items": {"type": "string"}
         },
-        "source_date": {"type": "string"}
+        "source_date": {"type": "string"},
+        "content_type": {"enum": ["historical_report", "historical_digest", "historical_analysis", "opinion"]},
+        "time_precision": {"enum": ["month", "year", "range", "unknown"]},
+        "verification_status": {"enum": ["verified", "needs_review"]},
+        "source_excerpt": {"type": "string"},
+        "editorial_note": {"type": "string"},
+        "background": {"type": "string"},
+        "later_effects": {"type": "string"}
       },
       "additionalProperties": true
     }
@@ -65,6 +72,10 @@
       ]
     },
     "articles": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/article"}
+    },
+    "annual_events": {
       "type": "array",
       "items": {"$ref": "#/definitions/article"}
     },

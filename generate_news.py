@@ -59,10 +59,6 @@ def validate_issue_data(data: dict, schema_path: str | None = None):
         path = ".".join(str(p) for p in first.path) or "<root>"
         raise ValueError(f"issue.json 不符合 schema: {path}: {first.message}") from first
 
-    total_articles = len(data.get("articles", [])) + (1 if data.get("lead") else 0)
-    if total_articles == 0:
-        raise ValueError("issue.json 至少需要一篇文章或头条")
-
     sections = data.get("sections", {})
     article_ids = {a.get("id") for a in data.get("articles", []) if isinstance(a, dict)}
     for section_name, items in sections.items():
@@ -71,6 +67,20 @@ def validate_issue_data(data: dict, schema_path: str | None = None):
         for item in items:
             if isinstance(item, dict) and item.get("id") not in article_ids:
                 raise ValueError(f"sections.{section_name} 含有未同步到 articles 的文章: {item.get('id')}")
+
+    all_articles = ([data["lead"]] if data.get("lead") else []) + data["articles"] + data["annual_events"]
+    ids = [article["id"] for article in all_articles]
+    if len(ids) != len(set(ids)):
+        raise ValueError("issue.json 含有重复文章 ID")
+    for article in all_articles:
+        if article["verification_status"] == "verified" and (
+            not any(source.strip() for source in article["sources"]) or not article["source_excerpt"].strip()
+        ):
+            raise ValueError(f"已核验文章缺少出处或原文: {article['id']}")
+    if data["annual_events"] and data["period"]["start_month"] != 10:
+        raise ValueError("本年纪事只能编入第四季度，不能伪装为当季事件")
+    if any(article["time_precision"] != "year" for article in data["annual_events"]):
+        raise ValueError("本年纪事必须明确标注年级时间精度")
 
     print(f"  ✓ issue.json schema 校验通过: {os.path.relpath(schema_path, os.path.dirname(os.path.abspath(__file__)))}")
 
@@ -152,8 +162,8 @@ def main():
     parser = argparse.ArgumentParser(description="大明新闻季报 — 报纸生成器")
     parser.add_argument("--date", type=str, default=None,
                         help="指定真实日期 (YYYY-MM-DD)，默认为今天")
-    parser.add_argument("--window", type=int, default=3,
-                        help="时间窗口（月），默认 3 个月（一个季度）")
+    parser.add_argument("--window", type=int, choices=[3], default=3,
+                        help="时间窗口固定为 3 个月（一个历史季度）")
     parser.add_argument("--output", type=str, default=None,
                         help="自定义输出目录（默认 web/）")
     parser.add_argument("--standalone", action="store_true",

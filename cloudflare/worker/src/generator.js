@@ -47,6 +47,37 @@ const SECTION_TARGETS = {
   "评论": { max: 1 },
 };
 
+const CONTENT_TYPE_REPORT = "historical_report";
+const CONTENT_TYPE_DIGEST = "historical_digest";
+const CONTENT_TYPE_ANALYSIS = "historical_analysis";
+const CONTENT_TYPE_OPINION = "opinion";
+
+const TIME_PRECISION_MONTH = "month";
+const TIME_PRECISION_YEAR = "year";
+const TIME_PRECISION_RANGE = "range";
+const TIME_PRECISION_UNKNOWN = "unknown";
+
+const VERIFICATION_VERIFIED = "verified";
+const VERIFICATION_NEEDS_REVIEW = "needs_review";
+
+const CALENDAR_NOTE = "时段按明代历法月序（正月、二月……十二月）编组，未换算为公历日期。";
+
+const MONTH_NAMES = {
+  1: "正月", 2: "二月", 3: "三月", 4: "四月", 5: "五月", 6: "六月",
+  7: "七月", 8: "八月", 9: "九月", 10: "十月", 11: "十一月", 12: "十二月",
+};
+
+// 十一月/十二月 must be matched before 一月/二月 so a substring is never read as a short month.
+const MONTH_TOKENS = [
+  [11, "十一月"], [12, "十二月"],
+  [1, "正月"], [1, "一月"],
+  [2, "二月"], [3, "三月"], [4, "四月"], [5, "五月"], [6, "六月"],
+  [7, "七月"], [8, "八月"], [9, "九月"], [10, "十月"],
+];
+
+const MULTI_RECORD_RE = /[0-9]+\s*[.．](?=[^0-9])|[①②③④⑤⑥⑦⑧⑨⑩]/;
+const DANGLING_SOURCE_RE = /[（(][^）)]*$|《[^》]*$/;
+
 function parseRealDate(dateString) {
   const source = dateString || new Date(Date.now() + TIMEZONE_OFFSET_MS).toISOString().slice(0, 10);
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(source);
@@ -129,10 +160,13 @@ function buildPeriod(year, month) {
     start_month: month,
     end_year: endYear,
     end_month: endMonth,
+    calendar_note: CALENDAR_NOTE,
   };
 }
 
 function classifyEvent(event) {
+  const specificSection = { examination: "科举文教", appointment: "人事任免", dismissal: "人事任免" }[event.event_type];
+  if (specificSection) return specificSection;
   const category = event.category || "unknown";
   for (const [section, categories] of Object.entries(SECTION_MAP)) {
     if (categories.includes(category)) return section;
@@ -140,47 +174,150 @@ function classifyEvent(event) {
   return "朝政要闻";
 }
 
-function sourceDate(year, month) {
-  return month ? `${year}年${month}月` : `${year}年`;
-}
-
 function monthName(month) {
-  return ["", "正月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月"][month] || `${month}月`;
+  return MONTH_NAMES[month] || `${month}月`;
 }
 
-function eventToArticle(event) {
+function sourceDate(year, month) {
+  return month ? `${year}年${monthName(month)}` : `${year}年`;
+}
+
+function distinctMonths(text) {
+  let work = String(text || "");
+  const found = new Set();
+  for (const [month, token] of MONTH_TOKENS) {
+    if (work.includes(token)) {
+      found.add(month);
+      work = work.split(token).join(`\u0001${month}\u0001`);
+    }
+  }
+  return found;
+}
+
+function countChar(text, char) {
+  return text.split(char).length - 1;
+}
+
+function hasMultiRecordMarkers(text) {
+  return MULTI_RECORD_RE.test(String(text || ""));
+}
+
+function hasDanglingSource(text) {
+  const value = String(text || "");
+  if (DANGLING_SOURCE_RE.test(value)) return true;
+  return countChar(value, "（") !== countChar(value, "）")
+    || countChar(value, "《") !== countChar(value, "》");
+}
+
+function completeSources(sources) {
+  return Array.isArray(sources) && sources.length > 0 && sources.every((source) => typeof source === "string" && source.trim());
+}
+
+function sourceList(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((source) => typeof source === "string").map((source) => source.trim()).filter(Boolean);
+}
+
+function disasterText(disaster) {
+  // The `reign` field is deliberately excluded: it carries year text that would
+  // otherwise smear records across quarters.
+  return `${disaster.location || ""}${disaster.description || ""}`;
+}
+
+function disasterIsPrecise(disaster) {
+  if (!completeSources(disaster.sources)) return false;
+  const text = disasterText(disaster);
+  if (hasMultiRecordMarkers(text) || hasDanglingSource(text) || !disasterHasCompleteDescription(disaster)) return false;
+  return distinctMonths(text).size === 1;
+}
+
+function disasterHasCompleteDescription(disaster) {
+  return /[。！？.!?）)]$/.test(String(disaster.description || "").trim());
+}
+
+const CITATION_RE = /[（(]《[^》]*》[^）)]*[）)]/;
+
+// Verification must be asserted by the input, never inferred from a clean parse.
+function explicitVerified(record) {
+  if (String(record.verification_status || "").trim() !== VERIFICATION_VERIFIED) return false;
+  if (!completeSources(record.sources)) return false;
+  return typeof record.source_excerpt === "string" && Boolean(record.source_excerpt.trim());
+}
+
+function resolveSourceExcerpt(record, fallback = "") {
+  const explicit = String(record.source_excerpt || "").trim();
+  return explicit || String(fallback || "").trim();
+}
+
+function disasterRawExcerpt(disaster) {
+  // Raw excerpt fallback: copied text only, never a verification signal.
+  const desc = String(disaster.description || "");
+  return desc.replace(/\s+/g, " ").trim().slice(0, 500);
+}
+
+function timelineArticle(event, timePrecision, editorialNote, verified, sources, sourceExcerpt) {
   const loc = event.location || {};
   const city = loc.city || "";
   const province = loc.province || "";
   const dateline = [city, province].filter(Boolean).join("、") || "京师";
+  const title = String(event.title || "").trim();
   let desc = String(event.description || "").replace(/\s+/g, " ").trim();
-  if (desc.length > 180) desc = `${desc.slice(0, 180).replace(/[，、；：,. ]+$/, "")}。`;
-  const names = (event.involved_persons || []).slice(0, 2).map((p) => p.name).filter(Boolean);
-  const sentences = desc ? [desc] : [];
-  if (event.causes?.length) sentences.push(`背景在于${event.causes.slice(0, 2).join("、")}。`);
-  if (event.consequences?.length) sentences.push(`其后续影响包括${event.consequences.slice(0, 2).join("、")}。`);
-  let body = sentences.join("").slice(0, 260);
-  if (body && !"。！？".includes(body.at(-1))) body += "。";
+  if (desc.length > 220) desc = `${desc.slice(0, 220).replace(/[，、；：,. ]+$/, "")}…`;
+  const subhead = desc.length > 56 ? `${desc.slice(0, 56)}…` : desc;
+  const causes = (event.causes || []).filter(Boolean).slice(0, 2);
+  const consequences = (event.consequences || []).filter(Boolean).slice(0, 2);
   return {
     id: event.id || "",
     section: classifyEvent(event),
-    headline: String(event.title || "").trim(),
-    subhead: desc.length > 56 ? `${desc.slice(0, 56)}…` : desc,
+    headline: title,
+    subhead,
     dateline: `${dateline} —`,
-    byline: names.length ? `${names.join("、")} 报道` : "",
-    body,
+    byline: "",
+    body: desc,
     event_type: event.event_type || "",
     severity: event.severity || "",
     location: `${province}${city}`,
     category: event.category || "",
-    sources: event.sources || [],
+    sources,
     source_date: sourceDate(event.year || 0, event.month || null),
+    content_type: verified ? CONTENT_TYPE_REPORT : CONTENT_TYPE_DIGEST,
+    time_precision: timePrecision,
+    verification_status: verified ? VERIFICATION_VERIFIED : VERIFICATION_NEEDS_REVIEW,
+    source_excerpt: sourceExcerpt,
+    editorial_note: editorialNote,
+    background: causes.join("、"),
+    later_effects: consequences.join("、"),
   };
+}
+
+function eventToArticle(event) {
+  const verified = explicitVerified(event);
+  const sources = sourceList(event.sources);
+  const sourceExcerpt = resolveSourceExcerpt(event, "");
+  let editorialNote = verified
+    ? `本条资料已显式标注为核验完成；月份为明代历法月序（${monthName(event.month)}），未作公历换算。`
+    : `${sources.length ? "本条附有来源材料，仍列为待核记录；" : "本条取自原始时间线，未附史源与校订信息，列为待核记录；"}月份为明代历法月序（${monthName(event.month)}），未作公历换算。`;
+  if (event.editorial_note) editorialNote = `${event.editorial_note} ${editorialNote}`;
+  return timelineArticle(event, TIME_PRECISION_MONTH, editorialNote, verified, sources, sourceExcerpt);
+}
+
+function annualTimelineArticle(event) {
+  const verified = explicitVerified(event);
+  const statusNote = verified ? "资料已显式标注为核验完成。" : "资料仍待核验。";
+  return timelineArticle(
+    event,
+    TIME_PRECISION_YEAR,
+    `${event.editorial_note || ""} 原始记录仅系年、月份不详，未列入季度版面，改列年度辑录；未作公历换算。${statusNote}`.trim(),
+    verified,
+    sourceList(event.sources),
+    resolveSourceExcerpt(event, ""),
+  );
 }
 
 function cleanLocation(raw) {
   if (!raw) return "";
-  return String(raw).split(/[：:]/)[0].replace(/[12]\.\s*/g, "").replace(/[①②③④⑤⑥⑦⑧⑨⑩]/g, "").trim().slice(0, 30);
+  const value = String(raw).split(/[：:]/)[0].replace(/[12]\.\s*/g, "").replace(/[①②③④⑤⑥⑦⑧⑨⑩]/g, "").trim();
+  return value.length > 30 ? `${value.slice(0, 30)}…` : value;
 }
 
 function cleanDisasterDesc(raw) {
@@ -195,155 +332,123 @@ function cleanDisasterDesc(raw) {
 
 function extractDisasterLocation(raw) {
   if (!raw) return "各地";
-  const loc = String(raw).split(/[：:]/)[0].replace(/[12]\.\s*/g, "").trim();
+  const first = String(raw).split(/[：:]/)[0];
+  if (!first) return "各地";
+  const loc = first.replace(/[12]\.\s*/g, "").trim();
   return loc.length > 25 ? `${loc.slice(0, 25)}…` : loc;
 }
 
-function disasterToArticle(disaster, seq) {
+function disasterToArticle(disaster, seq, month, precise) {
   const dtype = disaster.disaster_type || "灾异";
+  const year = disaster.year || 0;
+  const desc = cleanDisasterDesc(disaster.description || "");
   const location = extractDisasterLocation(disaster.location || "");
   const cleanLoc = cleanLocation(disaster.location || "");
+  const sources = sourceList(disaster.sources);
+  const sourceExcerpt = resolveSourceExcerpt(disaster, disasterRawExcerpt(disaster));
+  const verified = precise && explicitVerified(disaster);
+
   const headline = cleanLoc ? `${cleanLoc}${dtype}` : `${dtype}报告`;
+  const finalHeadline = headline.length > 30
+    ? (cleanLoc ? `${dtype}：${cleanLoc.slice(0, 20)}` : `${dtype}报告`)
+    : headline;
+
+  let id;
+  let contentType;
+  let timePrecision;
+  let verificationStatus;
+  let editorialNote;
+  if (precise) {
+    id = `DIS_${year}_${month}_${seq}`;
+    timePrecision = TIME_PRECISION_MONTH;
+    if (verified) {
+      contentType = CONTENT_TYPE_REPORT;
+      verificationStatus = VERIFICATION_VERIFIED;
+      editorialNote = `单一月份灾异记录，出处已显式核验（${sourceExcerpt}）；月份为明代历法月序（${monthName(month)}），未作公历换算。`;
+    } else {
+      contentType = CONTENT_TYPE_DIGEST;
+      verificationStatus = VERIFICATION_NEEDS_REVIEW;
+      const excerptNote = sourceExcerpt ? `原文摘录仅照录、未经核验（${sourceExcerpt}）` : "原始出处未附";
+      editorialNote = `单一月份灾异记录，${excerptNote}，列为待核记录；月份为明代历法月序（${monthName(month)}），未作公历换算。`;
+    }
+  } else {
+    id = `DIS_${year}_A${seq}`;
+    contentType = CONTENT_TYPE_DIGEST;
+    timePrecision = TIME_PRECISION_YEAR;
+    verificationStatus = VERIFICATION_NEEDS_REVIEW;
+    editorialNote = "本条未载明确月份，列入年度待核辑录，不推定具体季度；未作公历换算。";
+  }
+
   return {
-    id: `DIS_${disaster.year}_${seq}`,
+    id,
     section: "灾异志",
-    headline: headline.length > 30 ? `${dtype}：${cleanLoc.slice(0, 20)}` : headline,
+    headline: finalHeadline,
     subhead: "",
-    dateline: `${location} —`,
+    dateline: location ? `${location} —` : "各地 —",
     byline: "",
-    body: cleanDisasterDesc(disaster.description || ""),
+    body: desc,
     event_type: "disaster",
     severity: /疫|灾|震|涝|旱/.test(dtype) ? "major" : "",
     location,
     category: "disaster",
-    sources: disaster.sources || [],
-    source_date: `${disaster.year || 0}年`,
+    sources,
+    source_date: `${year}年`,
+    content_type: contentType,
+    time_precision: timePrecision,
+    verification_status: verificationStatus,
+    source_excerpt: sourceExcerpt,
+    editorial_note: editorialNote,
+    background: "",
+    later_effects: "",
   };
 }
 
-function eraContext(year) {
-  if (year <= 1398) return {
-    phase: "开国整饬期",
-    focus: "战后秩序、户籍赋役与军政制度仍在重建",
-    capital: "应天府",
-    military: "北方元廷残余与各地卫所建设仍牵动朝廷注意",
-    finance: "黄册、鱼鳞图册、里甲与赋役编审是财政秩序的基础工程",
-    education: "国子学、科举取士和礼制建设正在为新朝吸纳士人",
-    disaster: "战后人口流徙与垦复尚未稳定，地方灾伤容易牵动蠲免和赈济",
-  };
-  if (year <= 1424) return {
-    phase: "靖难余波与永乐经营期",
-    focus: "迁都、北征、海运与文教修纂共同塑造新政治中心",
-    capital: "北京、南京",
-    military: "北边防务与远征调度是军政重心",
-    finance: "迁都营建、北征军需、漕运转输和匠役征发并行",
-    education: "翰林修撰、典籍编纂与科举取士服务于新政权叙事",
-    disaster: "大规模工程与转运压力下，水旱灾伤会直接影响粮运和工役",
-  };
-  if (year <= 1505) return {
-    phase: "中期守成期",
-    focus: "科举官僚、边防财政与地方治理维持帝国常态运转",
-    capital: "京师",
-    military: "九边防务、漕运通道和地方卫所需要持续维持",
-    finance: "漕粮、盐课、屯田和地方存留是维持京师与边镇的财政支柱",
-    education: "会试、殿试与翰林院形成较稳定的官僚补给机制",
-    disaster: "地方灾异通常与赈济、蠲免和仓储调度一并考察",
-  };
-  if (year <= 1572) return {
-    phase: "制度压力累积期",
-    focus: "财政、边防、宗藩和地方赋役压力逐渐抬升",
-    capital: "京师",
-    military: "北虏、倭患与地方兵备交织成长期压力",
-    finance: "白银流通、盐法、边饷和宗藩禄米逐步加重财政约束",
-    education: "科举规模扩大，士论、讲学与地方文教影响朝廷舆论",
-    disaster: "灾荒记录需与蠲免、赈济和地方赋役承受力合并判断",
-  };
-  if (year <= 1620) return {
-    phase: "万历财政与边防压力期",
-    focus: "矿税、辽东、党争与财政调度不断牵动朝局",
-    capital: "京师",
-    military: "辽东边事、边饷与军镇供给成为关键议题",
-    finance: "矿税、加派、边饷和仓储亏空共同挤压地方财政",
-    education: "科场、书院和士大夫舆论逐渐卷入朝政分歧",
-    disaster: "灾伤若与赋役加派叠加，容易放大地方治理风险",
-  };
-  return {
-    phase: "晚明危局期",
-    focus: "财政枯竭、边患、灾荒与地方动荡相互叠加",
-    capital: "京师",
-    military: "辽东战事、流寇与军饷短缺压迫朝廷决策",
-    finance: "辽饷、练饷、剿饷、欠饷和地方征派构成财政危机主线",
-    education: "士人舆论、科道弹劾和党争影响政策执行与人事任免",
-    disaster: "小冰期背景下的旱蝗饥疫与流民问题常相互放大",
-  };
-}
-
-function eventsInPeriod(period, timeline) {
+function eventsInPeriod(period, timeline, spanMonths = ISSUE_MONTH_SPAN) {
+  if (spanMonths !== ISSUE_MONTH_SPAN) {
+    throw new Error(`季报固定为 ${ISSUE_MONTH_SPAN} 个月窗口，收到 ${spanMonths} 个月`);
+  }
   return timeline
     .filter((event) => {
-      const em = event.month || 1;
-      return monthDiff(period.start_year, period.start_month, event.year || 0, em) >= 0
-        && monthDiff(period.start_year, period.start_month, event.year || 0, em) < ISSUE_MONTH_SPAN;
+      if (!event.month) return false;
+      const diff = monthDiff(period.start_year, period.start_month, event.year || 0, event.month);
+      return diff >= 0 && diff < ISSUE_MONTH_SPAN;
     })
     .map(eventToArticle);
 }
 
-function disasterMentionsPeriod(disaster, startMonth) {
-  const text = `${disaster.location || ""}${disaster.description || ""}${disaster.reign || ""}`;
-  return [0, 1, 2].some((offset) => text.includes(monthName(startMonth + offset)));
-}
-
 function disastersInPeriod(period, disasters) {
-  let seq = 1;
-  return disasters
-    .filter((disaster) => disaster.year === period.start_year && disasterMentionsPeriod(disaster, period.start_month))
-    .slice(0, 6)
-    .map((disaster) => disasterToArticle(disaster, seq++));
-}
-
-function backgroundArticles(period, timelineArticles) {
-  const ctx = eraContext(period.start_year);
-  if (period.start_year === 1368 && period.start_month === 1) {
-    return [
-      article("BG_1368_CAPITAL", "朝政要闻", "新朝定都应天，南直隶成政治中枢", "本季度的开国大典把应天府推上全国政治舞台。", "应天府 —", "新朝以应天府为都城，围绕宫城、六部与中书省展开行政运转。对外仍需面对北方元廷残余，对内则要把战时政权转为常设朝廷。", "background", "major", "南直隶应天府", "dynasty", ["明朝制度资料", "明代大事年表"], period.start_label),
-      article("BG_1368_MILITARY", "边关军事", "北伐仍在推进，新朝军事重心指向大都", "开国并不意味着战事结束，北方局势仍是朝廷首要压力。", "中原诸路 —", "徐达、常遇春等将领统率的北伐军事行动仍将决定新朝边界。此后数月，明军的推进将直接关系元廷是否还能维持中原统治。", "background", "major", "中原、华北", "military", ["明代大事年表", "明朝军事资料"], period.start_label),
-      article("BG_1368_INSTITUTION", "人事任免", "李善长、徐达分掌文武，新朝班底成形", "开国人事安排显示朝廷仍依赖淮西功臣与军功集团。", "应天府 —", "朱元璋即位后，以李善长、徐达等人为核心安排中枢文武职务。新政权的最初秩序，建立在军功、幕府旧臣与开国礼制之间。", "background", "", "南直隶应天府", "personnel", ["明代大事年表"], period.start_label),
-    ];
-  }
-  if (timelineArticles.length >= 3) return [];
-  return [
-    article(`BG_${period.start_year}_${period.start_month}_CONTEXT`, "朝政要闻", `本季朝政观察：${ctx.phase}维持连续运转`, "季报按三个月周期组织政务、军务与地方风险。", "京师 —", `本期对应${period.start_label}至${period.end_label}。朝廷日常政务围绕${ctx.focus}展开，军务上则需持续面对${ctx.military}。季报以季度为单位呈现制度运行和地方反馈，让读者看到单条大事之外的政治节奏。`, "background", "", "京师", "dynasty", ["明代大事年表", "灾害通史资料"], `${period.start_label}—${period.end_label}`),
-  ];
-}
-
-function article(id, section, headline, subhead, dateline, body, eventType, severity, location, category, sources, srcDate) {
-  return { id, section, headline, subhead, dateline, byline: "", body, event_type: eventType, severity, location, category, sources, source_date: srcDate };
-}
-
-function opinion(id, section, headline, subhead, dateline, body, eventType, severity, location, category, sources, srcDate) {
-  return { id, section, headline, subhead, dateline, byline: "本报编辑部", body, event_type: eventType, severity, location, category, sources, source_date: srcDate };
-}
-
-function supplementaryArticles(period, existingSections) {
-  const ctx = eraContext(period.start_year);
-  const templates = {
-    "朝政要闻": [`本季朝局：${ctx.phase}持续推进政务整饬`, `${ctx.focus}，朝廷围绕中枢号令与地方执行展开连续治理。`, `本期对应${period.start_label}至${period.end_label}。朝政线索集中在${ctx.focus}；同时，${ctx.military}。编辑部按季度梳理制度运行、军政压力与地方反馈，呈现这一阶段的政治节奏。`, "dynasty", "background"],
-    "边关军事": [`边防观察：${ctx.military}`, "军务栏目以季度为单位追踪边防、卫所和战事压力。", `对${period.start_label}至${period.end_label}这一季而言，军事形势不只取决于单次战报，也取决于军粮、兵员、转运和地方卫所能否承受持续调度。${ctx.military}，仍是朝廷必须反复评估的安全议题。`, "military", "military"],
-    "经济民生": [`${ctx.phase}：赋役、仓储与漕运仍为民生命脉`, `${ctx.finance}，构成本季民生报道的核心背景。`, `户部与地方州县仍需围绕田赋、漕粮、仓储和转输维持日常运作。对${period.start_label}至${period.end_label}这一时段而言，民生稳定不仅取决于收成，也取决于地方官能否把赋役、救济和运输安排在可承受范围内。${ctx.focus}，财政栏目需持续观察具体征派和仓储记录。`, "fiscal", "economy"],
-    "科举文教": [`${ctx.phase}下，取士与文教维系官僚秩序`, `${ctx.education}，文教秩序为新一季政务提供官僚基础。`, `礼部、翰林院与地方学校共同维持文教秩序。随着${ctx.focus}，朝廷仍需依靠稳定的科举与文书系统，把地方士人纳入可管理的官僚网络。`, "examination", "education"],
-    "灾异志": [`灾异观察：${ctx.phase}的地方风险仍需留档`, `${ctx.disaster}，灾异栏目按季度追踪地方风险。`, `灾异志栏目本期关注地方风险与财政承压之间的关系。灾荒、蠲免或赈济条目一旦出现，将与${ctx.finance}等财政线索并置观察，避免把灾异孤立为单一地方事件。`, "disaster", "disaster"],
-    "人事任免": [`人事观察：${ctx.phase}倚重官僚与军功班底`, "人事任免反映朝廷如何把季度政务压力分派到中枢和地方。", `在${period.start_label}至${period.end_label}这一季，官员升黜、差遣和文书责任构成政策落地的关键环节。${ctx.focus}，朝廷必须依靠稳定的人事体系维持法令、赋役和军务的连续执行。`, "personnel", "personnel"],
-  };
   const result = [];
-  for (const section of SECTION_ORDER) {
-    if (existingSections.has(section) || !templates[section]) continue;
-    const [headline, subhead, body, category, eventType] = templates[section];
-    result.push(article(`SUP_${period.start_year}_${period.start_month}_${section}`, section, headline, subhead, `${ctx.capital} —`, body, eventType, "", ctx.capital, category, ["明代制度资料", "明代大事年表"], `${period.start_label}—${period.end_label}`));
+  let seq = 1;
+  for (const disaster of disasters) {
+    if (disaster.year !== period.start_year || !disasterIsPrecise(disaster)) continue;
+    const months = [...distinctMonths(disasterText(disaster))];
+    if (months.length !== 1) continue;
+    const month = months[0];
+    const diff = monthDiff(period.start_year, period.start_month, period.start_year, month);
+    if (diff >= 0 && diff < ISSUE_MONTH_SPAN) {
+      result.push(disasterToArticle(disaster, seq, month, true));
+      seq += 1;
+    }
   }
-  if (existingSections.size < 4 && result.length < 7) {
-    result.push(article(`SUP_${period.start_year}_${period.start_month}_CONTEXT`, "朝政要闻", `时局综述：${ctx.phase}进入本季议程`, "季报以三个月为观察单位，串联政务、军务、财政与地方风险。", `${ctx.capital} —`, `本期对应${period.start_label}至${period.end_label}。本季报道围绕${ctx.focus}展开；同时，${ctx.military}。在政务层面，${ctx.finance}；在文教层面，${ctx.education}。季报把单条史事、制度背景和地方风险放在同一季度内观察，呈现明朝政务运行的连续性。`, "background", "", ctx.capital, "dynasty", ["明代大事年表", "明代制度资料"], `${period.start_label}—${period.end_label}`));
+  return result.slice(0, 6);
+}
+
+function annualEvents(period, timeline, disasters) {
+  if (Math.floor((period.start_month - 1) / ISSUE_MONTH_SPAN) + 1 !== 4) return [];
+  const year = period.start_year;
+  const events = [];
+  for (const event of timeline) {
+    if ((event.year || 0) === year && !event.month) events.push(annualTimelineArticle(event));
   }
-  return result;
+  let seq = 1;
+  for (const disaster of disasters) {
+    if (disaster.year !== year || disasterIsPrecise(disaster)) continue;
+    const text = disasterText(disaster);
+    if (hasMultiRecordMarkers(text) || hasDanglingSource(text) || distinctMonths(text).size > 0 || !disasterHasCompleteDescription(disaster)) continue;
+    events.push(disasterToArticle(disaster, seq, 0, false));
+    seq += 1;
+  }
+  return events;
 }
 
 function headlineFingerprint(text) {
@@ -364,7 +469,13 @@ function articleScore(art) {
 function dedupeArticles(articles) {
   const best = new Map();
   const order = [];
-  for (const art of articles) {
+  const excerpts = [];
+  for (const art of articles.slice().sort((a, b) => Number(a.verification_status !== VERIFICATION_VERIFIED) - Number(b.verification_status !== VERIFICATION_VERIFIED))) {
+    const excerpt = String(art.source_excerpt || "").replace(/\s+/g, "");
+    if (excerpt.length >= 20) {
+      if (excerpts.some((previous) => excerpt.includes(previous) || previous.includes(excerpt))) continue;
+      excerpts.push(excerpt);
+    }
     const key = `${art.section}:${headlineFingerprint(art.headline) || art.id}`;
     if (!best.has(key)) order.push(key);
     if (!best.has(key) || articleScore(art) > articleScore(best.get(key))) best.set(key, art);
@@ -379,26 +490,6 @@ function limitSectionArticles(articles) {
     const max = SECTION_TARGETS[section]?.max ?? Infinity;
     return (grouped.get(section) || []).sort((a, b) => articleScore(b) - articleScore(a)).slice(0, max);
   });
-}
-
-function opinionArticle(period, articles) {
-  const ctx = eraContext(period.start_year);
-  const lead = articles.find((art) => art.section !== "评论" && art.event_type !== "opinion");
-  const focus = lead?.headline || `${ctx.phase}政务`;
-  return opinion(
-    `OP_${period.start_year}_${period.start_month}`,
-    "评论",
-    `社论：${ctx.phase}贵在立制安民`,
-    "本报评论本季政务轻重：立国之初，声威与制度须并行。",
-    "本报评论 —",
-    `本报社论认为，${period.start_label}至${period.end_label}这一季的关键，不只在于“${focus}”，更在于新朝能否把号令转化为可持续的制度。${ctx.focus}，朝廷若只重声威而轻户籍、赋役、仓储与学校，则政令虽出而地方难以承受。军务上，${ctx.military}；民生上，${ctx.finance}。因此，本季之治当以立法定制、安集民力为先，使开创之势不止于一时捷报，而能成为长久秩序。`,
-    "opinion",
-    "",
-    ctx.capital,
-    "commentary",
-    ["明代制度资料", "明代大事年表"],
-    `${period.start_label}—${period.end_label}`,
-  );
 }
 
 function pickLead(articles) {
@@ -425,13 +516,11 @@ export function generateIssue(dateString, historyData) {
   const period = buildPeriod(year, month);
   const timelineArticles = eventsInPeriod(period, historyData.timeline);
   const disasterArticles = disastersInPeriod(period, historyData.disasters);
-  const base = dedupeArticles([...timelineArticles, ...disasterArticles, ...backgroundArticles(period, timelineArticles)]);
-  const existingSections = new Set(base.map((art) => art.section));
-  let allArticles = dedupeArticles([...base, ...supplementaryArticles(period, existingSections)]);
-  allArticles.push(opinionArticle(period, allArticles));
+  let allArticles = dedupeArticles([...timelineArticles, ...disasterArticles]);
   allArticles = limitSectionArticles(allArticles);
   const [lead, remaining] = pickLead(allArticles);
   const articles = limitSectionArticles(remaining);
+  const annual_events = annualEvents(period, historyData.timeline, historyData.disasters);
   return {
     date: {
       real_date: formatRealDate(realDate),
@@ -445,6 +534,7 @@ export function generateIssue(dateString, historyData) {
     lead,
     articles,
     sections: buildSections(articles),
-    editorial_note: `本报以 1 真实日对应 1 明朝季度，每期覆盖 3 个月，为一个季度。本期对应 ${period.start_label} 至 ${period.end_label}。`,
+    annual_events,
+    editorial_note: `本报以 1 真实日对应 1 明朝季度，每期覆盖 3 个月，为一个季度。本期对应 ${period.start_label} 至 ${period.end_label}。${CALENDAR_NOTE}未附史源的时间线条目列为待核记录；月份不详的年度条目仅在第四季度辑录中列出。`,
   };
 }

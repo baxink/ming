@@ -64,6 +64,7 @@ class PeriodMeta:
     start_month: int
     end_year: int
     end_month: int
+    calendar_note: str = ""
 
 
 @dataclass
@@ -81,6 +82,13 @@ class Article:
     category: str = ""
     sources: list = field(default_factory=list)
     source_date: str = ""
+    content_type: str = "historical_digest"
+    time_precision: str = "unknown"
+    verification_status: str = "needs_review"
+    source_excerpt: str = ""
+    editorial_note: str = ""
+    background: str = ""
+    later_effects: str = ""
 
 
 @dataclass
@@ -90,7 +98,32 @@ class NewspaperIssue:
     lead: Article | None = None
     articles: list = field(default_factory=list)
     sections: dict = field(default_factory=dict)
+    annual_events: list = field(default_factory=list)
     editorial_note: str = ""
+
+
+CONTENT_TYPE_REPORT = "historical_report"
+CONTENT_TYPE_DIGEST = "historical_digest"
+CONTENT_TYPE_ANALYSIS = "historical_analysis"
+CONTENT_TYPE_OPINION = "opinion"
+
+TIME_PRECISION_MONTH = "month"
+TIME_PRECISION_YEAR = "year"
+TIME_PRECISION_RANGE = "range"
+TIME_PRECISION_UNKNOWN = "unknown"
+
+VERIFICATION_VERIFIED = "verified"
+VERIFICATION_NEEDS_REVIEW = "needs_review"
+
+CALENDAR_NOTE = "时段按明代历法月序（正月、二月……十二月）编组，未换算为公历日期。"
+
+# 十一月/十二月 must be matched before 一月/二月 so a substring is never read as a short month.
+MONTH_TOKENS = [
+    (11, "十一月"), (12, "十二月"),
+    (1, "正月"), (1, "一月"),
+    (2, "二月"), (3, "三月"), (4, "四月"), (5, "五月"), (6, "六月"),
+    (7, "七月"), (8, "八月"), (9, "九月"), (10, "十月"),
+]
 
 
 def _data_dir():
@@ -182,10 +215,14 @@ def _build_period(abs_year: int, abs_month: int) -> PeriodMeta:
         start_month=abs_month,
         end_year=end_year,
         end_month=end_month,
+        calendar_note=CALENDAR_NOTE,
     )
 
 
 def _classify_event(event: dict) -> str:
+    specific_section = {"examination": "科举文教", "appointment": "人事任免", "dismissal": "人事任免"}.get(event.get("event_type"))
+    if specific_section:
+        return specific_section
     category = event.get("category", "unknown")
     for section, cats in SECTION_MAP.items():
         if category in cats:
@@ -193,25 +230,112 @@ def _classify_event(event: dict) -> str:
     return "朝政要闻"
 
 
+MONTH_NAMES = {
+    1: "正月", 2: "二月", 3: "三月", 4: "四月", 5: "五月", 6: "六月",
+    7: "七月", 8: "八月", 9: "九月", 10: "十月", 11: "十一月", 12: "十二月",
+}
+
+_MULTI_RECORD_RE = re.compile(r"[0-9]+\s*[.．](?=[^0-9])|[①②③④⑤⑥⑦⑧⑨⑩]")
+_DANGLING_SOURCE_RE = re.compile(r"[（(][^）)]*$|《[^》]*$")
+
+
 def _format_source_date(year: int, month: int | None) -> str:
     if month:
-        return f"{year}年{month}月"
+        return f"{year}年{_month_name(month)}"
     return f"{year}年"
 
 
 def _month_name(month: int) -> str:
-    names = {
-        1: "正月", 2: "二月", 3: "三月", 4: "四月", 5: "五月", 6: "六月",
-        7: "七月", 8: "八月", 9: "九月", 10: "十月", 11: "十一月", 12: "十二月",
-    }
-    return names.get(month, f"{month}月")
+    return MONTH_NAMES.get(month, f"{month}月")
 
 
-def _event_to_article(event: dict) -> Article:
+def _distinct_months(text: str) -> set:
+    """Extract distinct Ming lunar months, never reading 十一月 as 一月."""
+    work = text or ""
+    found = set()
+    for month, token in MONTH_TOKENS:
+        if token in work:
+            found.add(month)
+            work = work.replace(token, f"\u0001{month}\u0001")
+    return found
+
+
+def _has_multi_record_markers(text: str) -> bool:
+    return bool(_MULTI_RECORD_RE.search(text or ""))
+
+
+def _has_dangling_source(text: str) -> bool:
+    text = text or ""
+    if _DANGLING_SOURCE_RE.search(text):
+        return True
+    return text.count("（") != text.count("）") or text.count("《") != text.count("》")
+
+
+def _complete_sources(sources) -> bool:
+    return (isinstance(sources, list) and len(sources) > 0
+            and all(isinstance(s, str) and s.strip() for s in sources))
+
+
+def _source_list(raw) -> list:
+    if not isinstance(raw, list):
+        return []
+    return [s.strip() for s in raw if isinstance(s, str) and s.strip()]
+
+
+def _disaster_text(disaster: dict) -> str:
+    # The `reign` field is deliberately excluded: it carries year text that would
+    # otherwise smear records across quarters.
+    return f"{disaster.get('location', '')}{disaster.get('description', '')}"
+
+
+def _disaster_is_precise(disaster: dict) -> bool:
+    if not _complete_sources(disaster.get("sources")):
+        return False
+    text = _disaster_text(disaster)
+    if _has_multi_record_markers(text) or _has_dangling_source(text) or not _disaster_has_complete_description(disaster):
+        return False
+    return len(_distinct_months(text)) == 1
+
+
+def _disaster_has_complete_description(disaster: dict) -> bool:
+    description = str(disaster.get("description") or "").strip()
+    return bool(description) and description.endswith(("。", "！", "？", ".", "!", "?", "）", ")"))
+
+
+_CITATION_RE = re.compile(r"[（(]《[^》]*》[^）)]*[）)]")
+
+
+def _explicit_verified(record: dict) -> bool:
+    """Verification must be asserted by the input, never inferred from parsing.
+
+    A clean parse with citations is not factual verification; the record itself
+    must carry verification_status=="verified" plus non-empty sources and an
+    explicit source_excerpt.
+    """
+    if str(record.get("verification_status") or "").strip() != VERIFICATION_VERIFIED:
+        return False
+    if not _complete_sources(record.get("sources")):
+        return False
+    return isinstance(record.get("source_excerpt"), str) and bool(record["source_excerpt"].strip())
+
+
+def _resolve_source_excerpt(record: dict, fallback: str = "") -> str:
+    explicit = str(record.get("source_excerpt") or "").strip()
+    return explicit or (fallback or "").strip()
+
+
+def _disaster_raw_excerpt(disaster: dict) -> str:
+    """Raw excerpt fallback: copied text only, never a verification signal."""
+    desc = str(disaster.get("description") or "")
+    return re.sub(r"\s+", " ", desc).strip()[:500]
+
+
+def _timeline_article(event: dict, time_precision: str, editorial_note: str,
+                      verified: bool, sources: list, source_excerpt: str) -> Article:
     section = _classify_event(event)
     loc = event.get("location") or {}
-    city = loc.get("city", "") if isinstance(loc, dict) else ""
-    province = loc.get("province", "") if isinstance(loc, dict) else ""
+    city = (loc.get("city") or "") if isinstance(loc, dict) else ""
+    province = (loc.get("province") or "") if isinstance(loc, dict) else ""
 
     dateline_parts = [p for p in [city, province] if p]
     dateline = "、".join(dateline_parts) if dateline_parts else "京师"
@@ -219,28 +343,12 @@ def _event_to_article(event: dict) -> Article:
     title = (event.get("title", "") or "").strip()
     desc = (event.get("description", "") or "").strip()
     desc = re.sub(r"\s+", " ", desc)
-    if len(desc) > 180:
-        desc = desc[:180].rstrip("，、；：,. ") + "。"
+    if len(desc) > 220:
+        desc = desc[:220].rstrip("，、；：,. ") + "…"
     subhead = desc[:56] + "…" if len(desc) > 56 else desc
 
-    byline = ""
-    persons = event.get("involved_persons", [])
-    if persons:
-        names = [p.get("name", "") for p in persons[:2] if p.get("name")]
-        if names:
-            byline = "、".join(names) + " 报道"
-
-    event_month = event.get("month") or None
-    causes = event.get("causes", []) or []
-    consequences = event.get("consequences", []) or []
-    sentences = [desc] if desc else []
-    if causes:
-        sentences.append(f"背景在于{'、'.join(causes[:2])}。")
-    if consequences:
-        sentences.append(f"其后续影响包括{'、'.join(consequences[:2])}。")
-    body = "".join(sentences)[:260]
-    if body and body[-1] not in "。！？":
-        body += "。"
+    causes = [c for c in (event.get("causes") or []) if c]
+    consequences = [c for c in (event.get("consequences") or []) if c]
 
     return Article(
         id=event.get("id", ""),
@@ -248,14 +356,56 @@ def _event_to_article(event: dict) -> Article:
         headline=title,
         subhead=subhead,
         dateline=f"{dateline} —",
-        byline=byline,
-        body=body,
+        byline="",
+        body=desc,
         event_type=event.get("event_type", ""),
         severity=event.get("severity", ""),
         location=f"{province}{city}",
         category=event.get("category", ""),
-        sources=event.get("sources", []),
-        source_date=_format_source_date(event.get("year", 0), event_month),
+        sources=sources,
+        source_date=_format_source_date(event.get("year", 0), event.get("month")),
+        content_type=CONTENT_TYPE_REPORT if verified else CONTENT_TYPE_DIGEST,
+        time_precision=time_precision,
+        verification_status=VERIFICATION_VERIFIED if verified else VERIFICATION_NEEDS_REVIEW,
+        source_excerpt=source_excerpt,
+        editorial_note=editorial_note,
+        background="、".join(causes[:2]),
+        later_effects="、".join(consequences[:2]),
+    )
+
+
+def _event_to_article(event: dict) -> Article:
+    month = event.get("month")
+    verified = _explicit_verified(event)
+    sources = _source_list(event.get("sources"))
+    source_excerpt = _resolve_source_excerpt(event, "")
+    if verified:
+        editorial_note = (
+            "本条资料已显式标注为核验完成；"
+            f"月份为明代历法月序（{_month_name(month)}），未作公历换算。"
+        )
+    else:
+        editorial_note = (
+            ("本条附有来源材料，仍列为待核记录；" if sources else "本条取自原始时间线，未附史源与校订信息，列为待核记录；") +
+            f"月份为明代历法月序（{_month_name(month)}），未作公历换算。"
+        )
+    if event.get("editorial_note"):
+        editorial_note = f"{event['editorial_note']} {editorial_note}"
+    return _timeline_article(
+        event, TIME_PRECISION_MONTH, editorial_note, verified, sources, source_excerpt,
+    )
+
+
+def _annual_timeline_article(event: dict) -> Article:
+    verified = _explicit_verified(event)
+    status_note = "资料已显式标注为核验完成。" if verified else "资料仍待核验。"
+    return _timeline_article(
+        event,
+        TIME_PRECISION_YEAR,
+        f"{event.get('editorial_note') or ''} 原始记录仅系年、月份不详，未列入季度版面，改列年度辑录；未作公历换算。{status_note}".strip(),
+        verified,
+        _source_list(event.get("sources")),
+        _resolve_source_excerpt(event, ""),
     )
 
 
@@ -297,19 +447,52 @@ def _extract_disaster_location(raw: str) -> str:
     return "各地"
 
 
-def _disaster_to_article(disaster: dict, seq: int) -> Article:
+def _disaster_to_article(disaster: dict, seq: int, month: int, precise: bool) -> Article:
     dtype = disaster.get("disaster_type", "灾异")
     year = disaster.get("year", 0)
     desc = _clean_disaster_desc(disaster.get("description", ""))
     location = _extract_disaster_location(disaster.get("location", ""))
     clean_loc = _clean_location(disaster.get("location", ""))
+    sources = _source_list(disaster.get("sources"))
+    source_excerpt = _resolve_source_excerpt(disaster, _disaster_raw_excerpt(disaster))
+    verified = precise and _explicit_verified(disaster)
 
     headline = f"{clean_loc}{dtype}" if clean_loc else f"{dtype}报告"
     if len(headline) > 30:
         headline = f"{dtype}：{clean_loc[:20]}" if clean_loc else f"{dtype}报告"
 
+    if precise:
+        article_id = f"DIS_{year}_{month}_{seq}"
+        time_precision = TIME_PRECISION_MONTH
+        if verified:
+            content_type = CONTENT_TYPE_REPORT
+            verification_status = VERIFICATION_VERIFIED
+            editorial_note = (
+                f"单一月份灾异记录，出处已显式核验（{source_excerpt}）；"
+                f"月份为明代历法月序（{_month_name(month)}），未作公历换算。"
+            )
+        else:
+            content_type = CONTENT_TYPE_DIGEST
+            verification_status = VERIFICATION_NEEDS_REVIEW
+            excerpt_note = (
+                f"原文摘录仅照录、未经核验（{source_excerpt}）"
+                if source_excerpt else "原始出处未附"
+            )
+            editorial_note = (
+                f"单一月份灾异记录，{excerpt_note}，列为待核记录；"
+                f"月份为明代历法月序（{_month_name(month)}），未作公历换算。"
+            )
+    else:
+        article_id = f"DIS_{year}_A{seq}"
+        content_type = CONTENT_TYPE_DIGEST
+        time_precision = TIME_PRECISION_YEAR
+        verification_status = VERIFICATION_NEEDS_REVIEW
+        editorial_note = (
+            "本条未载明确月份，列入年度待核辑录，不推定具体季度；未作公历换算。"
+        )
+
     return Article(
-        id=f"DIS_{year}_{seq}",
+        id=article_id,
         section="灾异志",
         headline=headline,
         subhead="",
@@ -320,8 +503,13 @@ def _disaster_to_article(disaster: dict, seq: int) -> Article:
         severity="major" if any(k in dtype for k in ["疫", "灾", "震", "涝", "旱"]) else "",
         location=location,
         category="disaster",
-        sources=disaster.get("sources", []),
+        sources=sources,
         source_date=f"{year}年",
+        content_type=content_type,
+        time_precision=time_precision,
+        verification_status=verification_status,
+        source_excerpt=source_excerpt,
+        editorial_note=editorial_note,
     )
 
 
@@ -362,13 +550,20 @@ class NewsroomEngine:
 
     def get_events_in_period(self, start_year: int, start_month: int,
                              span_months: int = ISSUE_MONTH_SPAN) -> list[Article]:
+        if span_months != ISSUE_MONTH_SPAN:
+            raise ValueError(
+                f"季报固定为 {ISSUE_MONTH_SPAN} 个月窗口，收到 {span_months} 个月"
+            )
         events = []
         if not self.timeline:
             return events
 
         for event in self.timeline:
+            em = event.get("month")
+            if not em:
+                # 月份不详者不进入季度版面，改列年度待核辑录，避免每年重复且错置 Q1。
+                continue
             ey = event.get("year", 0)
-            em = event.get("month") or 1
             diff = _month_diff(start_year, start_month, ey, em)
             if 0 <= diff < span_months:
                 events.append(_event_to_article(event))
@@ -383,228 +578,37 @@ class NewsroomEngine:
 
         seq = 1
         for d in self.disasters:
-            dy = d.get("year", 0)
-            if dy != start_year or not self._disaster_mentions_period(d, start_month):
+            if d.get("year", 0) != start_year or not _disaster_is_precise(d):
                 continue
-            disasters.append(_disaster_to_article(d, seq))
-            seq += 1
+            months = _distinct_months(_disaster_text(d))
+            if len(months) != 1:
+                continue
+            month = next(iter(months))
+            diff = _month_diff(start_year, start_month, start_year, month)
+            if 0 <= diff < ISSUE_MONTH_SPAN:
+                disasters.append(_disaster_to_article(d, seq, month, precise=True))
+                seq += 1
 
         return disasters[:6]
 
-    def _disaster_mentions_period(self, disaster: dict, start_month: int) -> bool:
-        text = f"{disaster.get('location', '')}{disaster.get('description', '')}{disaster.get('reign', '')}"
-        return any(_month_name(m) in text for m in range(start_month, start_month + ISSUE_MONTH_SPAN))
-
-    def get_background_articles(self, period: PeriodMeta, timeline_articles: list[Article]) -> list[Article]:
-        articles = []
-        if period.start_year == 1368 and period.start_month == 1:
-            articles.extend([
-                Article(
-                    id="BG_1368_CAPITAL",
-                    section="朝政要闻",
-                    headline="新朝定都应天，南直隶成政治中枢",
-                    subhead="本季度的开国大典把应天府推上全国政治舞台。",
-                    dateline="应天府 —",
-                    body="新朝以应天府为都城，围绕宫城、六部与中书省展开行政运转。对外仍需面对北方元廷残余，对内则要把战时政权转为常设朝廷。",
-                    event_type="background",
-                    severity="major",
-                    location="南直隶应天府",
-                    category="dynasty",
-                    sources=["明朝制度资料", "明代大事年表"],
-                    source_date=period.start_label,
-                ),
-                Article(
-                    id="BG_1368_MILITARY",
-                    section="边关军事",
-                    headline="北伐仍在推进，新朝军事重心指向大都",
-                    subhead="开国并不意味着战事结束，北方局势仍是朝廷首要压力。",
-                    dateline="中原诸路 —",
-                    body="徐达、常遇春等将领统率的北伐军事行动仍将决定新朝边界。此后数月，明军的推进将直接关系元廷是否还能维持中原统治。",
-                    event_type="background",
-                    severity="major",
-                    location="中原、华北",
-                    category="military",
-                    sources=["明代大事年表", "明朝军事资料"],
-                    source_date=period.start_label,
-                ),
-                Article(
-                    id="BG_1368_INSTITUTION",
-                    section="人事任免",
-                    headline="李善长、徐达分掌文武，新朝班底成形",
-                    subhead="开国人事安排显示朝廷仍依赖淮西功臣与军功集团。",
-                    dateline="应天府 —",
-                    body="朱元璋即位后，以李善长、徐达等人为核心安排中枢文武职务。新政权的最初秩序，建立在军功、幕府旧臣与开国礼制之间。",
-                    event_type="background",
-                    severity="",
-                    location="南直隶应天府",
-                    category="personnel",
-                    sources=["明代大事年表"],
-                    source_date=period.start_label,
-                ),
-            ])
-        elif len(timeline_articles) < 3:
-            ctx = self._era_context(period.start_year)
-            articles.append(Article(
-                id=f"BG_{period.start_year}_{period.start_month}_CONTEXT",
-                section="朝政要闻",
-                headline=f"本季朝政观察：{ctx['phase']}维持连续运转",
-                subhead="季报按三个月周期组织政务、军务与地方风险。",
-                dateline="京师 —",
-                body=f"本期对应{period.start_label}至{period.end_label}。朝廷日常政务围绕{ctx['focus']}展开，军务上则需持续面对{ctx['military']}。季报以季度为单位呈现制度运行和地方反馈，让读者看到单条大事之外的政治节奏。",
-                event_type="background",
-                severity="",
-                location="京师",
-                category="dynasty",
-                sources=["明代大事年表", "灾害通史资料"],
-                source_date=f"{period.start_label}—{period.end_label}",
-            ))
-        return articles
-
-    def _era_context(self, year: int) -> dict:
-        if year <= 1398:
-            return {
-                "phase": "开国整饬期",
-                "focus": "战后秩序、户籍赋役与军政制度仍在重建",
-                "capital": "应天府",
-                "military": "北方元廷残余与各地卫所建设仍牵动朝廷注意",
-                "finance": "黄册、鱼鳞图册、里甲与赋役编审是财政秩序的基础工程",
-                "education": "国子学、科举取士和礼制建设正在为新朝吸纳士人",
-                "disaster": "战后人口流徙与垦复尚未稳定，地方灾伤容易牵动蠲免和赈济",
-            }
-        if year <= 1424:
-            return {
-                "phase": "靖难余波与永乐经营期",
-                "focus": "迁都、北征、海运与文教修纂共同塑造新政治中心",
-                "capital": "北京、南京",
-                "military": "北边防务与远征调度是军政重心",
-                "finance": "迁都营建、北征军需、漕运转输和匠役征发并行",
-                "education": "翰林修撰、典籍编纂与科举取士服务于新政权叙事",
-                "disaster": "大规模工程与转运压力下，水旱灾伤会直接影响粮运和工役",
-            }
-        if year <= 1505:
-            return {
-                "phase": "中期守成期",
-                "focus": "科举官僚、边防财政与地方治理维持帝国常态运转",
-                "capital": "京师",
-                "military": "九边防务、漕运通道和地方卫所需要持续维持",
-                "finance": "漕粮、盐课、屯田和地方存留是维持京师与边镇的财政支柱",
-                "education": "会试、殿试与翰林院形成较稳定的官僚补给机制",
-                "disaster": "地方灾异通常与赈济、蠲免和仓储调度一并考察",
-            }
-        if year <= 1572:
-            return {
-                "phase": "制度压力累积期",
-                "focus": "财政、边防、宗藩和地方赋役压力逐渐抬升",
-                "capital": "京师",
-                "military": "北虏、倭患与地方兵备交织成长期压力",
-                "finance": "白银流通、盐法、边饷和宗藩禄米逐步加重财政约束",
-                "education": "科举规模扩大，士论、讲学与地方文教影响朝廷舆论",
-                "disaster": "灾荒记录需与蠲免、赈济和地方赋役承受力合并判断",
-            }
-        if year <= 1620:
-            return {
-                "phase": "万历财政与边防压力期",
-                "focus": "矿税、辽东、党争与财政调度不断牵动朝局",
-                "capital": "京师",
-                "military": "辽东边事、边饷与军镇供给成为关键议题",
-                "finance": "矿税、加派、边饷和仓储亏空共同挤压地方财政",
-                "education": "科场、书院和士大夫舆论逐渐卷入朝政分歧",
-                "disaster": "灾伤若与赋役加派叠加，容易放大地方治理风险",
-            }
-        return {
-            "phase": "晚明危局期",
-            "focus": "财政枯竭、边患、灾荒与地方动荡相互叠加",
-            "capital": "京师",
-            "military": "辽东战事、流寇与军饷短缺压迫朝廷决策",
-            "finance": "辽饷、练饷、剿饷、欠饷和地方征派构成财政危机主线",
-            "education": "士人舆论、科道弹劾和党争影响政策执行与人事任免",
-            "disaster": "小冰期背景下的旱蝗饥疫与流民问题常相互放大",
-        }
-
-    def _supplementary_articles(self, period: PeriodMeta, existing_sections: dict, target_count: int = 8) -> list[Article]:
-        supplements = []
-        missing_sections = [name for name in SECTION_ORDER if name not in existing_sections]
-        ctx = self._era_context(period.start_year)
-        section_templates = {
-            "朝政要闻": (
-                f"本季朝局：{ctx['phase']}持续推进政务整饬",
-                f"{ctx['focus']}，朝廷围绕中枢号令与地方执行展开连续治理。",
-                f"本期对应{period.start_label}至{period.end_label}。朝政线索集中在{ctx['focus']}；同时，{ctx['military']}。编辑部按季度梳理制度运行、军政压力与地方反馈，呈现这一阶段的政治节奏。",
-                "dynasty",
-                "background",
-            ),
-            "边关军事": (
-                f"边防观察：{ctx['military']}",
-                "军务栏目以季度为单位追踪边防、卫所和战事压力。",
-                f"对{period.start_label}至{period.end_label}这一季而言，军事形势不只取决于单次战报，也取决于军粮、兵员、转运和地方卫所能否承受持续调度。{ctx['military']}，仍是朝廷必须反复评估的安全议题。",
-                "military",
-                "military",
-            ),
-            "经济民生": (
-                f"{ctx['phase']}：赋役、仓储与漕运仍为民生命脉",
-                f"{ctx['finance']}，构成本季民生报道的核心背景。",
-                f"户部与地方州县仍需围绕田赋、漕粮、仓储和转输维持日常运作。对{period.start_label}至{period.end_label}这一时段而言，民生稳定不仅取决于收成，也取决于地方官能否把赋役、救济和运输安排在可承受范围内。{ctx['focus']}，财政栏目需持续观察具体征派和仓储记录。",
-                "fiscal",
-                "economy",
-            ),
-            "科举文教": (
-                f"{ctx['phase']}下，取士与文教维系官僚秩序",
-                f"{ctx['education']}，文教秩序为新一季政务提供官僚基础。",
-                f"礼部、翰林院与地方学校共同维持文教秩序。随着{ctx['focus']}，朝廷仍需依靠稳定的科举与文书系统，把地方士人纳入可管理的官僚网络。",
-                "examination",
-                "education",
-            ),
-            "灾异志": (
-                f"灾异观察：{ctx['phase']}的地方风险仍需留档",
-                f"{ctx['disaster']}，灾异栏目按季度追踪地方风险。",
-                f"灾异志栏目本期关注地方风险与财政承压之间的关系。灾荒、蠲免或赈济条目一旦出现，将与{ctx['finance']}等财政线索并置观察，避免把灾异孤立为单一地方事件。",
-                "disaster",
-                "disaster",
-            ),
-            "人事任免": (
-                f"人事观察：{ctx['phase']}倚重官僚与军功班底",
-                "人事任免反映朝廷如何把季度政务压力分派到中枢和地方。",
-                f"在{period.start_label}至{period.end_label}这一季，官员升黜、差遣和文书责任构成政策落地的关键环节。{ctx['focus']}，朝廷必须依靠稳定的人事体系维持法令、赋役和军务的连续执行。",
-                "personnel",
-                "personnel",
-            ),
-        }
-        for section in missing_sections:
-            tpl = section_templates.get(section)
-            if not tpl:
+    def get_annual_events(self, period: PeriodMeta) -> list[Article]:
+        if ((period.start_month - 1) // ISSUE_MONTH_SPAN) + 1 != 4:
+            return []
+        year = period.start_year
+        events = []
+        for event in self.timeline:
+            if event.get("year", 0) == year and not event.get("month"):
+                events.append(_annual_timeline_article(event))
+        seq = 1
+        for d in self.disasters:
+            if d.get("year", 0) != year or _disaster_is_precise(d):
                 continue
-            headline, subhead, body, category, event_type = tpl
-            supplements.append(Article(
-                id=f"SUP_{period.start_year}_{period.start_month}_{section}",
-                section=section,
-                headline=headline,
-                subhead=subhead,
-                dateline=f"{ctx['capital']} —",
-                body=body,
-                event_type=event_type,
-                severity="",
-                location=ctx["capital"],
-                category=category,
-                sources=["明代制度资料", "明代大事年表"],
-                source_date=f"{period.start_label}—{period.end_label}",
-            ))
-
-        if len(existing_sections) < 4 and len(supplements) < max(0, target_count - 1):
-            supplements.append(Article(
-                id=f"SUP_{period.start_year}_{period.start_month}_CONTEXT",
-                section="朝政要闻",
-                headline=f"时局综述：{ctx['phase']}进入本季议程",
-                subhead=f"季报以三个月为观察单位，串联政务、军务、财政与地方风险。",
-                dateline=f"{ctx['capital']} —",
-                body=f"本期对应{period.start_label}至{period.end_label}。本季报道围绕{ctx['focus']}展开；同时，{ctx['military']}。在政务层面，{ctx['finance']}；在文教层面，{ctx['education']}。季报把单条史事、制度背景和地方风险放在同一季度内观察，呈现明朝政务运行的连续性。",
-                event_type="background",
-                severity="",
-                location=ctx["capital"],
-                category="dynasty",
-                sources=["明代大事年表", "明代制度资料"],
-                source_date=f"{period.start_label}—{period.end_label}",
-            ))
-        return supplements
+            text = _disaster_text(d)
+            if _has_multi_record_markers(text) or _has_dangling_source(text) or _distinct_months(text) or not _disaster_has_complete_description(d):
+                continue
+            events.append(_disaster_to_article(d, seq, 0, precise=False))
+            seq += 1
+        return events
 
     def _headline_fingerprint(self, text: str) -> str:
         text = re.sub(r"[：:，、。；！？\s]", "", text or "")
@@ -637,7 +641,14 @@ class NewsroomEngine:
     def _dedupe_articles(self, articles: list[Article]) -> list[Article]:
         best_by_key = {}
         order = []
-        for art in articles:
+        excerpts = []
+        for art in sorted(articles, key=lambda item: item.verification_status != VERIFICATION_VERIFIED):
+            excerpt = re.sub(r"\s+", "", art.source_excerpt or "")
+            # Prefer verified evidence; otherwise curated entries precede raw duplicates.
+            if len(excerpt) >= 20:
+                if any(excerpt in previous or previous in excerpt for previous in excerpts):
+                    continue
+                excerpts.append(excerpt)
             fp = self._headline_fingerprint(art.headline)
             key = (art.section, fp or art.id)
             score = self._article_score(art)
@@ -671,33 +682,6 @@ class NewsroomEngine:
         remaining.extend(a for a in articles if a not in ranked)
         return lead, remaining
 
-    def _opinion_article(self, period: PeriodMeta, articles: list[Article]) -> Article:
-        ctx = self._era_context(period.start_year)
-        lead = next((a for a in articles if a.section != "评论" and a.event_type != "opinion"), None)
-        focus_headline = lead.headline if lead else f"{ctx['phase']}政务"
-        body = (
-            f"本报社论认为，{period.start_label}至{period.end_label}这一季的关键，不只在于"
-            f"“{focus_headline}”，更在于新朝能否把号令转化为可持续的制度。"
-            f"{ctx['focus']}，朝廷若只重声威而轻户籍、赋役、仓储与学校，则政令虽出而地方难以承受。"
-            f"军务上，{ctx['military']}；民生上，{ctx['finance']}。"
-            f"因此，本季之治当以立法定制、安集民力为先，使开创之势不止于一时捷报，而能成为长久秩序。"
-        )
-        return Article(
-            id=f"OP_{period.start_year}_{period.start_month}",
-            section="评论",
-            headline=f"社论：{ctx['phase']}贵在立制安民",
-            subhead="本报评论本季政务轻重：立国之初，声威与制度须并行。",
-            dateline="本报评论 —",
-            byline="本报编辑部",
-            body=body,
-            event_type="opinion",
-            severity="",
-            location=ctx["capital"],
-            category="commentary",
-            sources=["明代制度资料", "明代大事年表"],
-            source_date=f"{period.start_label}—{period.end_label}",
-        )
-
     def _build_sections(self, articles: list[Article]) -> dict:
         sections = {}
         for section_name in SECTION_ORDER:
@@ -707,6 +691,10 @@ class NewsroomEngine:
         return {name: items for name, items in sections.items() if items}
 
     def generate_issue(self, now: datetime | None = None, window_months: int = ISSUE_MONTH_SPAN) -> NewspaperIssue:
+        if window_months != ISSUE_MONTH_SPAN:
+            raise ValueError(
+                f"季报固定为 {ISSUE_MONTH_SPAN} 个月窗口，收到 {window_months} 个月"
+            )
         if now is None:
             now = datetime.now(TIMEZONE_CST)
 
@@ -714,19 +702,15 @@ class NewsroomEngine:
         abs_year, abs_month = self._real_to_ming(now)
         period = _build_period(abs_year, abs_month)
 
-        timeline_articles = self.get_events_in_period(period.start_year, period.start_month, window_months)
+        timeline_articles = self.get_events_in_period(period.start_year, period.start_month)
         disaster_articles = self.get_disasters_in_period(period.start_year, period.start_month, period.end_year)
-        background_articles = self.get_background_articles(period, timeline_articles)
-        base_articles = self._dedupe_articles(timeline_articles + disaster_articles + background_articles)
-        existing_sections = {article.section for article in base_articles}
-        supplement_articles = self._supplementary_articles(period, existing_sections)
-        all_articles = self._dedupe_articles(base_articles + supplement_articles)
-        all_articles.append(self._opinion_article(period, all_articles))
+        all_articles = self._dedupe_articles(timeline_articles + disaster_articles)
         all_articles = self._limit_section_articles(all_articles)
 
         lead, remaining = self._pick_lead(all_articles)
         remaining = self._limit_section_articles(remaining)
         sections = self._build_sections(remaining)
+        annual_events = self.get_annual_events(period)
 
         issue = NewspaperIssue(
             date=date,
@@ -734,9 +718,12 @@ class NewsroomEngine:
             lead=lead,
             articles=remaining,
             sections=sections,
+            annual_events=annual_events,
             editorial_note=(
                 f"本报以 1 真实日对应 1 明朝季度，每期覆盖 3 个月，为一个季度。"
                 f"本期对应 {period.start_label} 至 {period.end_label}。"
+                f"{CALENDAR_NOTE}"
+                f"未附史源的时间线条目列为待核记录；月份不详的年度条目仅在第四季度辑录中列出。"
             )
         )
         return issue
@@ -748,6 +735,7 @@ class NewsroomEngine:
             "lead": asdict(issue.lead) if issue.lead else None,
             "articles": [asdict(a) for a in issue.articles],
             "sections": issue.sections,
+            "annual_events": [asdict(a) for a in issue.annual_events],
             "editorial_note": issue.editorial_note,
         }
         indent = 2 if pretty else None

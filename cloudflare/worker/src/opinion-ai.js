@@ -4,39 +4,113 @@ const DEFAULT_LLM_BASE = "https://api.chatanywhere.tech/v1";
 const DEFAULT_LLM_MODEL = "gpt-4o-mini";
 const DEFAULT_WORKERS_AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 
-function topArticles(issue) {
-  return [issue.lead, ...(issue.articles || [])]
-    .filter((article) => article && article.section !== "评论" && article.event_type !== "opinion")
-    .slice(0, 6);
+const MAX_EVIDENCE_FACTS = 6;
+const MAX_SOURCES_PER_FACT = 4;
+const MAX_OPINION_SOURCES = 12;
+const EXCERPT_LIMIT = 220;
+const BACKGROUND_LIMIT = 200;
+const LATER_EFFECTS_LIMIT = 200;
+
+function isNonEmptyString(value) {
+  return typeof value === "string" && value.trim().length > 0;
 }
 
-function fallbackOpinion(issue) {
-  return issue.sections?.["评论"]?.[0] || issue.articles?.find((article) => article.section === "评论") || null;
+function isOpinionArticle(article) {
+  return Boolean(article)
+    && (article.section === "评论" || article.content_type === "opinion" || article.event_type === "opinion");
 }
 
-function commentaryPrompt(issue) {
-  const period = issue.period || {};
-  const headlines = topArticles(issue).map((article, index) => {
-    const body = String(article.body || "").slice(0, 120);
-    return `${index + 1}. [${article.section}] ${article.headline}：${body}`;
-  }).join("\n");
+function isQualifiedFact(article) {
+  if (!article || typeof article !== "object") return false;
+  if (isOpinionArticle(article)) return false;
+  if (article.content_type !== "historical_report") return false;
+  if (article.verification_status !== "verified") return false;
+  if (article.is_template === true || article.template === true) return false;
+  if (!Array.isArray(article.sources) || !article.sources.some(isNonEmptyString)) return false;
+  if (!isNonEmptyString(article.source_excerpt)) return false;
+  return true;
+}
 
-  return [
-    "你是《大明新闻季报》的资深社论作者。请基于本季度新闻写一篇真正像报纸社论的中文时评。",
-    "要求：",
-    "1. 只使用给定新闻事实，不编造未出现的人名、地名、事件。",
-    "2. 必须围绕本季度一条最重要的热点新闻立论，开头两句内点明矛盾，不要写季度综述。",
-    "3. 按“判断、热点切入、制度分析、风险结论”的逻辑写，语气专业、犀利、像报纸社论。",
-    "4. 评论应聚焦财政、军政、地方执行、民生承压、权力结构中的至少一个维度，必须指出朝廷真正的问题不在表面消息，而在制度和执行。",
-    "5. 输出严格 JSON，不要 Markdown，不要解释。",
-    "6. body 必须是单个中文字符串，不得输出数组、对象、分点字段或嵌套 JSON。",
-    "7. 禁止使用“本季度的新闻报道显示”“综上所述”“可以看出”“值得关注的是”等总结腔。",
-    "8. headline 必须像报纸社论标题，直接下判断；不要写“季度评论”“综述”“观察”。",
-    "JSON 字段：headline, subhead, body。",
+function selectEvidenceFacts(issue) {
+  if (!issue) return [];
+  const seen = new Set();
+  const candidates = [];
+  const pushArticle = (article) => {
+    if (!article || typeof article !== "object") return;
+    const key = article.id || article;
+    if (seen.has(key)) return;
+    seen.add(key);
+    candidates.push(article);
+  };
+
+  pushArticle(issue.lead);
+  for (const article of Array.isArray(issue.articles) ? issue.articles : []) pushArticle(article);
+  for (const items of Object.values(issue.sections || {})) {
+    for (const article of Array.isArray(items) ? items : []) pushArticle(article);
+  }
+
+  return candidates.filter(isQualifiedFact).slice(0, MAX_EVIDENCE_FACTS);
+}
+
+function existingOpinion(issue) {
+  const fromSections = Array.isArray(issue?.sections?.["评论"])
+    ? issue.sections["评论"].find(isOpinionArticle)
+    : null;
+  if (fromSections) return fromSections;
+  return (Array.isArray(issue?.articles) ? issue.articles : []).find(isOpinionArticle) || null;
+}
+
+function clip(value, limit) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  if (text.length <= limit) return text;
+  return `${text.slice(0, limit)}…`;
+}
+
+function periodTimePrecision(issue) {
+  const period = issue?.period;
+  if (period && (isNonEmptyString(period.start_label) || period.start_year != null)) return "range";
+  return "unknown";
+}
+
+function collectSources(facts) {
+  const sources = [];
+  for (const fact of facts) {
+    for (const source of Array.isArray(fact?.sources) ? fact.sources : []) {
+      const value = String(source || "").trim();
+      if (!value || sources.includes(value)) continue;
+      sources.push(value);
+      if (sources.length >= MAX_OPINION_SOURCES) return sources;
+    }
+  }
+  return sources;
+}
+
+function evidencePrompt(issue, facts) {
+  const period = issue?.period || {};
+  const lines = [
+    "你是《大明新闻季报》的评论作者。请只依据下面提供的“已核验史实”写一篇中文时评。",
+    "写作要求：",
+    "1. 不得编造史实中没有的人名、地名、事件、数字或引文；无法从史实推出的话不要写。",
+    "2. 结论必须由证据支撑，不要预设固定立场，也不要为了升华而强行上升到制度或兴亡结论；证据不足时应明确指出不确定。",
+    "3. “背景”是编辑部整理材料，“后世影响”是现代回望，两者都不是当时发生的事实；引用后世影响时必须用现代视角明确标注，不得写成当时事实。",
+    "4. 开头切入一条具体史实，不写季度综述；避免“本季度的新闻报道显示”“综上所述”“可以看出”“值得关注的是”等套话。",
+    "5. 只输出严格 JSON，字段为 headline、subhead、body；body 为单个中文字符串，不要 Markdown、不要分点字段或嵌套 JSON。",
     `本期：${period.label || ""}，${period.start_label || ""}至${period.end_label || ""}。`,
-    "本季度新闻：",
-    headlines,
-  ].join("\n");
+    "已核验史实：",
+  ];
+
+  facts.forEach((fact, index) => {
+    lines.push(`【史实${index + 1}】${fact.headline || ""}`);
+    if (isNonEmptyString(fact.section)) lines.push(`栏目：${fact.section}`);
+    lines.push(`时间精度：${fact.time_precision || "unknown"}${isNonEmptyString(fact.source_date) ? `；系年：${fact.source_date}` : ""}`);
+    if (isNonEmptyString(fact.source_excerpt)) lines.push(`史料摘录：${clip(fact.source_excerpt, EXCERPT_LIMIT)}`);
+    if (isNonEmptyString(fact.background)) lines.push(`背景（编辑部整理，非史实原文）：${clip(fact.background, BACKGROUND_LIMIT)}`);
+    if (isNonEmptyString(fact.later_effects)) lines.push(`后世影响（现代回望，非当时事实，须明确标注为现代视角）：${clip(fact.later_effects, LATER_EFFECTS_LIMIT)}`);
+    const sources = (Array.isArray(fact.sources) ? fact.sources : []).filter(isNonEmptyString).slice(0, MAX_SOURCES_PER_FACT);
+    if (sources.length) lines.push(`来源：${sources.join("；")}`);
+  });
+
+  return lines.join("\n");
 }
 
 function opinionJsonSchema() {
@@ -89,13 +163,14 @@ function headlineKeywords(headline) {
     .slice(0, 4);
 }
 
-function normalizeOpinion(raw, baseOpinion, issue, sourceLabel) {
+function normalizeOpinion(raw, issue, facts, sourceLabel, baseOpinion) {
   const headline = normalizeEditorialHeadline(raw?.headline);
   const subhead = String(raw?.subhead || "").trim();
   const body = normalizeEditorialBody(normalizeBody(raw?.body));
-  const focusHeadlines = topArticles(issue).map((article) => article?.headline || "").filter(Boolean);
 
   if (!headline || !subhead || body.length < 120) return null;
+
+  const focusHeadlines = facts.map((fact) => fact.headline || "").filter(Boolean);
   if (focusHeadlines.length > 0) {
     const matchesHotspot = focusHeadlines.some((focus) => {
       if (body.includes(focus)) return true;
@@ -104,13 +179,34 @@ function normalizeOpinion(raw, baseOpinion, issue, sourceLabel) {
     if (!matchesHotspot) return null;
   }
 
+  const period = issue?.period || {};
+  const sources = collectSources(facts);
+  const supportingSources = sources.length
+    ? sources
+    : (Array.isArray(baseOpinion?.sources) ? baseOpinion.sources : []).map((source) => String(source || "").trim()).filter(Boolean);
+
   return {
-    ...baseOpinion,
+    ...(baseOpinion || {}),
+    id: baseOpinion?.id || `AI_OPINION_${period.start_year ?? "x"}_${period.start_month ?? "x"}`,
+    section: "评论",
     headline: headline.slice(0, 48),
     subhead: subhead.slice(0, 90),
+    dateline: baseOpinion?.dateline || "本报评论 —",
     byline: "本报评论部",
     body: body.slice(0, 520),
-    sources: Array.from(new Set([...(baseOpinion.sources || []), sourceLabel])),
+    event_type: "opinion",
+    content_type: "opinion",
+    verification_status: "needs_review",
+    time_precision: baseOpinion?.time_precision || periodTimePrecision(issue),
+    severity: baseOpinion?.severity ?? "",
+    location: baseOpinion?.location || "",
+    category: baseOpinion?.category || "commentary",
+    sources: supportingSources,
+    source_date: baseOpinion?.source_date || (isNonEmptyString(period.start_label) && isNonEmptyString(period.end_label) ? `${period.start_label}—${period.end_label}` : ""),
+    source_excerpt: "",
+    background: baseOpinion?.background || "",
+    later_effects: baseOpinion?.later_effects || "",
+    editorial_note: `${sourceLabel || "AI"}自动生成；本文为模型对已核验史实的编辑解读，非史料原文，未经人工核验；依据史实：${focusHeadlines.join("；")}。`,
   };
 }
 
@@ -153,10 +249,19 @@ function normalizeEditorialBody(value) {
   return body.trim();
 }
 
-function replaceOpinion(issue, nextOpinion) {
-  const articles = (issue.articles || []).map((article) => article.section === "评论" ? nextOpinion : article);
-  const sections = { ...(issue.sections || {}) };
-  sections["评论"] = [nextOpinion];
+function syncOpinion(issue, nextOpinion) {
+  const sourceArticles = Array.isArray(issue?.articles) ? issue.articles : [];
+  const hasOpinionInArticles = sourceArticles.some(isOpinionArticle);
+  const articles = hasOpinionInArticles
+    ? sourceArticles.map((article) => (isOpinionArticle(article) ? nextOpinion : article))
+    : [...sourceArticles, nextOpinion];
+
+  const sections = { ...(issue?.sections || {}) };
+  const commentItems = Array.isArray(sections["评论"])
+    ? sections["评论"].filter((article) => !isOpinionArticle(article))
+    : [];
+  sections["评论"] = [nextOpinion, ...commentItems];
+
   return { ...issue, articles, sections };
 }
 
@@ -180,6 +285,11 @@ function debugState(provider = null) {
     errorName: null,
     errorMessage: null,
     outputPreview: null,
+    skipped: false,
+    skipReason: null,
+    evidenceCount: 0,
+    annualEventsCount: 0,
+    modelCalled: false,
   };
 }
 
@@ -236,11 +346,19 @@ function escapeJsonLiteralNewlines(source) {
 }
 
 export async function enhanceIssueOpinion(issue, env) {
-  const baseOpinion = fallbackOpinion(issue);
-  if (!baseOpinion) {
+  const facts = selectEvidenceFacts(issue);
+  const annualEventsCount = Array.isArray(issue?.annual_events) ? issue.annual_events.length : 0;
+
+  if (facts.length === 0) {
     return {
       issue,
-      debug: { ...debugState(), errorMessage: "Missing base opinion article" },
+      debug: {
+        ...debugState(),
+        skipped: true,
+        skipReason: "insufficient_evidence",
+        annualEventsCount,
+        errorMessage: "Skipped AI opinion: no verified historical_report fact with non-empty sources and source_excerpt",
+      },
     };
   }
 
@@ -248,16 +366,29 @@ export async function enhanceIssueOpinion(issue, env) {
   if (!provider) {
     return {
       issue,
-      debug: { ...debugState(), errorMessage: "No AI provider configured" },
+      debug: {
+        ...debugState(),
+        skipped: true,
+        skipReason: "no_provider",
+        evidenceCount: facts.length,
+        annualEventsCount,
+        errorMessage: "No AI provider configured",
+      },
     };
   }
 
-  const debug = debugState(provider);
+  const baseOpinion = existingOpinion(issue);
+  const debug = {
+    ...debugState(provider),
+    evidenceCount: facts.length,
+    annualEventsCount,
+  };
   const startedAt = Date.now();
 
   try {
     if (typeof provider.execute === "function") {
-      const payload = await provider.execute(issue);
+      debug.modelCalled = true;
+      const payload = await provider.execute(issue, facts);
       debug.status = 200;
       debug.responseOk = true;
       debug.durationMs = Date.now() - startedAt;
@@ -265,7 +396,7 @@ export async function enhanceIssueOpinion(issue, env) {
 
       const raw = parseOpinionJson(parseOutputText(payload));
       debug.parseOk = true;
-      const nextOpinion = normalizeOpinion(raw, baseOpinion, issue, provider.sourceLabel);
+      const nextOpinion = normalizeOpinion(raw, issue, facts, provider.sourceLabel, baseOpinion);
       if (!nextOpinion) {
         debug.validationOk = false;
         debug.errorMessage = "Model output failed opinion validation";
@@ -273,16 +404,17 @@ export async function enhanceIssueOpinion(issue, env) {
       }
 
       debug.validationOk = true;
-      return { issue: replaceOpinion(issue, nextOpinion), debug };
+      return { issue: syncOpinion(issue, nextOpinion), debug };
     }
 
+    debug.modelCalled = true;
     const response = await provider.fetchFn(provider.url, {
       method: "POST",
       headers: {
         "authorization": `Bearer ${provider.apiKey}`,
         "content-type": "application/json",
       },
-      body: JSON.stringify(provider.payload(issue)),
+      body: JSON.stringify(provider.payload(issue, facts)),
     });
     debug.status = response.status;
     debug.responseOk = response.ok;
@@ -299,7 +431,7 @@ export async function enhanceIssueOpinion(issue, env) {
     debug.outputPreview = previewOutput(parseOutputText(payload));
     const raw = parseOpinionJson(parseOutputText(payload));
     debug.parseOk = true;
-    const nextOpinion = normalizeOpinion(raw, baseOpinion, issue, provider.sourceLabel);
+    const nextOpinion = normalizeOpinion(raw, issue, facts, provider.sourceLabel, baseOpinion);
     if (!nextOpinion) {
       debug.validationOk = false;
       debug.errorMessage = "Model output failed opinion validation";
@@ -307,7 +439,7 @@ export async function enhanceIssueOpinion(issue, env) {
     }
 
     debug.validationOk = true;
-    return { issue: replaceOpinion(issue, nextOpinion), debug };
+    return { issue: syncOpinion(issue, nextOpinion), debug };
   } catch (error) {
     debug.durationMs = Date.now() - startedAt;
     debug.errorName = error instanceof Error ? error.name : "Error";
@@ -320,16 +452,16 @@ function resolveProvider(env) {
   if (typeof env?.AI?.run === "function") {
     const model = env.AI_MODEL || DEFAULT_WORKERS_AI_MODEL;
     return {
-      execute(issue) {
+      execute(issue, facts) {
         return env.AI.run(model, {
           messages: [
             {
               role: "system",
-              content: "你是《大明新闻季报》的资深社论作者，只输出严格 JSON。",
+              content: "你是《大明新闻季报》的评论作者，只依据已核验史实写作，只输出严格 JSON。",
             },
             {
               role: "user",
-              content: commentaryPrompt(issue),
+              content: evidencePrompt(issue, facts),
             },
           ],
           temperature: 0.7,
@@ -358,17 +490,17 @@ function resolveProvider(env) {
         id: "chat_completions",
         sourceLabel: apiBase.includes("chatanywhere") ? "ChatAnywhere 生成评论" : "兼容模型生成评论",
         url: `${apiBase}/chat/completions`,
-        payload(issue) {
+        payload(issue, facts) {
           return {
             model,
             messages: [
               {
                 role: "system",
-                content: "你是《大明新闻季报》的资深社论作者，只输出严格 JSON。",
+                content: "你是《大明新闻季报》的评论作者，只依据已核验史实写作，只输出严格 JSON。",
               },
               {
                 role: "user",
-                content: commentaryPrompt(issue),
+                content: evidencePrompt(issue, facts),
               },
             ],
             temperature: 0.7,
@@ -388,10 +520,10 @@ function resolveProvider(env) {
       id: "openai_responses",
       sourceLabel: "OpenAI 生成评论",
       url: `${apiBase}/responses`,
-      payload(issue) {
+      payload(issue, facts) {
         return {
           model,
-          input: commentaryPrompt(issue),
+          input: evidencePrompt(issue, facts),
           max_output_tokens: 700,
         };
       },

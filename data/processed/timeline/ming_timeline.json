@@ -796,5 +796,170 @@
     "causes": ["内外交困", "积重难返"],
     "consequences": ["明朝灭亡", "清军入关"],
     "category": "dynasty"
+  },
+  {
+    "id": "CUR1403_01_QINGFENG", "year": 1403, "month": 1,
+    "title": "清丰等县蝗灾，朝廷准用元城县储粮赈济",
+    "description": "永乐元年正月，大名府清丰等县发生蝗灾，民众缺粮。户部请求动用元城县所储粮食四万余石赈济，朝廷批准。",
+    "category": "fiscal", "event_type": "relief", "severity": "major",
+    "location": {"city": "清丰县"},
+    "sources": ["《中国灾害通史·明代卷》永乐元年虫灾条；本地文本第6873行", "该书转引《明太宗实录》卷16，永乐元年正月丁酉"],
+    "source_excerpt": "正月丁酉，大名府清丰等县蝗，民饥，户部请以元城县所贮粮四万余石赈之。从之。",
+    "verification_status": "needs_review",
+    "editorial_note": "已对照本地灾害通史摘录整理，尚未校核所引实录原本；数量、系年与原文仍待人工复核。"
+  },
+  {
+    "id": "CUR1403_04_SHANGHAI", "year": 1403, "month": 4,
+    "title": "上海县水灾后，朝廷按人口发放储粟",
+    "description": "永乐元年四月，户部报告直隶上海县水灾、民饥。朝廷下令用现有储粟按人口赈济，记载发粮四万九千九十石有余。",
+    "category": "fiscal", "event_type": "relief", "severity": "major",
+    "location": {"city": "上海县"},
+    "sources": ["《中国灾害通史·明代卷》永乐元年水灾条；本地文本第6819行", "该书转引《明太宗实录》卷19，永乐元年四月己未"],
+    "source_excerpt": "四月己未，户部言：直隶上海县水，民饥，命以见储粟验口赈之，凡四万九千九十石有奇。",
+    "verification_status": "needs_review",
+    "editorial_note": "已对照本地灾害通史摘录，未校核实录原本；这里的月份对应奏报与命令，不推定水灾最初发生日期。"
+  },
+  {
+    "id": "CUR1403_07_KUNSHAN", "year": 1403, "month": 7,
+    "title": "昆山县报水灾，获准给粟赈民",
+    "description": "永乐元年七月，户部报告直隶昆山县水灾。朝廷命给粟赈济，记载发放六千二百八十石。",
+    "category": "fiscal", "event_type": "relief", "severity": "major",
+    "location": {"city": "昆山县"},
+    "sources": ["《中国灾害通史·明代卷》永乐元年水灾条；本地文本第6843行", "该书转引《明太宗实录》卷21，永乐元年七月乙未"],
+    "source_excerpt": "七月乙未，户部言：直隶昆山县水。命给粟赈其民，凡给六千二百八十石。",
+    "verification_status": "needs_review",
+    "editorial_note": "已对照本地灾害通史摘录，未校核实录原本；记载的是当月奏报与赈济命令。"
+  },
+  {
+    "id": "CUR1403_11_BEIJING", "year": 1403, "month": 11,
+    "title": "北京地震见于永乐元年冬季记录",
+    "description": "《中国灾害通史·明代卷》转引《明史》，记载永乐元年十一月甲午北京地震。该条未提供震级、伤亡或赈济情况。",
+    "category": "disaster", "event_type": "disaster", "severity": "",
+    "location": {"city": "北京"},
+    "sources": ["《中国灾害通史·明代卷》永乐元年地震条；本地文本第6915行", "该书转引《明史》卷6《成祖纪二》"],
+    "source_excerpt": "冬十一月甲午，北京地震。",
+    "verification_status": "needs_review",
+    "editorial_note": "仅对照本地二手摘录；未校核《明史》原本，不推定震级或影响范围。"
+  },
+  {
+    "id": "CUR1404_01_YINGZE", "year": 1404, "month": 1,
+    "title": "荥泽县蝗灾伤稼，获准以豆菽缴纳税粮",
+    "description": "永乐二年正月，河南郑州荥泽县报告蝗蝻伤稼，请求以豆菽替代原定税粮缴纳。朝廷批准这一请求。",
+    "category": "fiscal", "event_type": "taxation", "severity": "major",
+    "location": {"city": "荥泽县"},
+    "sources": ["《中国灾害通史·明代卷》永乐二年虫灾条；本地文本第6981行", "该书转引《明太宗实录》卷27，永乐二年正月庚申"],
+    "source_excerpt": "正月庚申，河南郑州荥泽县言：蝗蝻伤稼，税粮乞以豆菽代输。从之。",
+    "verification_status": "needs_review",
+    "editorial_note": "已对照本地灾害通史摘录，未校核实录原本；批准的是折输，不等同于免税。"
+  },
+  {
+    "id": "CUR1404_06_FOUR_PREFECTURES", "year": 1404, "month": 6,
+    "title": "苏松嘉湖四府水灾列入六月记录",
+    "description": "《中国灾害通史·明代卷》转引《明史》，记载永乐二年六月苏州、松江、嘉兴、湖州四府发生水灾。该条没有记载受灾户数或损失数量。",
+    "category": "disaster", "event_type": "disaster", "severity": "",
+    "location": {"city": "苏州、松江、嘉兴、湖州"},
+    "sources": ["《中国灾害通史·明代卷》永乐二年水灾条；本地文本第6951行", "该书转引《明史》卷28《五行一》"],
+    "source_excerpt": "六月，苏、松、嘉、湖四府俱水。",
+    "verification_status": "needs_review",
+    "editorial_note": "仅对照本地二手摘录；未校核《明史》原本，不据简短记载推定受灾程度。"
+  },
+  {
+    "id": "CUR1404_08_BEIJING", "year": 1404, "month": 8,
+    "title": "北京城遭连雨损坏，史料记城垣五千余丈",
+    "description": "《中国灾害通史·明代卷》转引《明史》，记载永乐二年八月连雨损坏北京城垣五千余丈。此条没有提供伤亡或修复经过。",
+    "category": "disaster", "event_type": "disaster", "severity": "major",
+    "location": {"city": "北京"},
+    "sources": ["《中国灾害通史·明代卷》永乐二年连阴雨条；本地文本第6981行", "该书转引《明史》卷29《五行二》"],
+    "source_excerpt": "八月，霪雨坏北京城五千余丈。",
+    "verification_status": "needs_review",
+    "editorial_note": "仅对照本地二手摘录；长度为书中所引记载，未校核原本或换算为现代单位。"
+  },
+  {
+    "id": "CUR1404_11_HEZHOU", "year": 1404, "month": 11,
+    "title": "和州圩岸受潮冲决，朝廷准予修筑",
+    "description": "永乐二年十一月，直隶和州民众报告铜城闸沿线七十余处圩岸遭江潮冲决、禾稼受损，请求修筑。朝廷批准。",
+    "category": "infrastructure", "event_type": "water_conservancy", "severity": "major",
+    "location": {"city": "和州"},
+    "sources": ["《中国灾害通史·明代卷》永乐二年水灾条；本地文本第6963行", "该书转引《明太宗实录》卷36，永乐二年十一月戊申"],
+    "source_excerpt": "十一月戊申，直隶和州民言：州铜城闸上抵巢湖，下接扬子江，圩岸七十余处为江潮冲决，坏禾稼，乞修筑。从之。",
+    "verification_status": "needs_review",
+    "editorial_note": "已对照本地灾害通史摘录，未校核实录原本；批准修筑不等同于工程已经完成。"
+  },
+  {
+    "id": "CUR1405_02_MACUN", "year": 1405, "month": 2,
+    "title": "马村堤决口，朝廷命河南官员督修",
+    "description": "永乐三年二月，河南布政司报告马村堤发生河决。朝廷命该司官员亲自督率民丁修治。",
+    "category": "infrastructure", "event_type": "water_conservancy", "severity": "major",
+    "location": {"city": "马村堤（具体位置待考）"},
+    "sources": ["《中国灾害通史·明代卷》永乐三年水灾条；本地文本第7023行", "该书转引《明太宗实录》卷39，永乐三年二月丁卯"],
+    "source_excerpt": "二月丁卯，河南布政司言：河决马村堤。命本司官躬督民丁修治。",
+    "verification_status": "needs_review",
+    "editorial_note": "已对照本地灾害通史摘录，未校核实录原本；不推定马村对应的现代位置或修治结果。"
+  },
+  {
+    "id": "CUR1405_05_LOCUSTS", "year": 1405, "month": 5,
+    "title": "延安与济南蝗灾见于五月记录",
+    "description": "《中国灾害通史·明代卷》转引《明史》，记载永乐三年五月延安、济南发生蝗灾。该条未载捕治、蠲免或受灾规模。",
+    "category": "disaster", "event_type": "disaster", "severity": "",
+    "location": {"city": "延安、济南"},
+    "sources": ["《中国灾害通史·明代卷》永乐三年虫灾条；本地文本第7029行", "该书转引《明史》卷28《五行一》"],
+    "source_excerpt": "五月，延安、济南蝗。",
+    "verification_status": "needs_review",
+    "editorial_note": "仅对照本地二手摘录；未校核《明史》原本，不推断灾害程度。"
+  },
+  {
+    "id": "CUR1405_08_HANGZHOU", "year": 1405, "month": 8,
+    "title": "杭州属县水灾，史料记溺亡四百余人",
+    "description": "《中国灾害通史·明代卷》转引《明史》，记载永乐三年八月杭州属县多处水灾，溺亡男女四百余人。该条未详列县名。",
+    "category": "disaster", "event_type": "disaster", "severity": "major",
+    "location": {"city": "杭州属县"},
+    "sources": ["《中国灾害通史·明代卷》永乐三年水灾条；本地文本第7011行", "该书转引《明史》卷28《五行一》"],
+    "source_excerpt": "八月，杭州属县多水，淹男妇四百余人。",
+    "verification_status": "needs_review",
+    "editorial_note": "仅对照本地二手摘录；伤亡数为该书引文，未校核原本。"
+  },
+  {
+    "id": "CUR1405_10_TAX_SUBSTITUTION", "year": 1405, "month": 10,
+    "title": "怀远等县与金州获准用豆麦折输税粮",
+    "description": "永乐三年十月，直隶凤阳府怀远等县及陕西汉中府金州奏称春夏缺雨、耕种受阻，但秋种收获尚可，请求以豆、麦折输税粮。朝廷批准。",
+    "category": "fiscal", "event_type": "taxation", "severity": "major",
+    "location": {"city": "怀远等县、金州"},
+    "sources": ["《中国灾害通史·明代卷》永乐三年旱灾条；本地文本第7029行", "该书转引《明太宗实录》卷47，永乐三年十月乙亥"],
+    "source_excerpt": "直隶凤阳府怀远等县及陕西汉中府金州言：春、夏不雨，民不及耕而秋种颇收，乞以豆、麦折输税粮。从之。",
+    "verification_status": "needs_review",
+    "editorial_note": "十月取自该书所引实录的系年，为奏报与批准折输的月份；春夏旱情不归作十月发生，未校核原本。"
+  },
+  {
+    "id": "CUR1406_02_XUANCHENG", "year": 1406, "month": 2,
+    "title": "宣城县请求预修圩岸，以防春水妨农",
+    "description": "永乐四年二月，宁国府宣城县民众报告十九处圩岸近来受水冲决，担忧春水泛溢妨碍农种，请求预先修筑。朝廷批准。",
+    "category": "infrastructure", "event_type": "water_conservancy", "severity": "major",
+    "location": {"city": "宣城县"},
+    "sources": ["《中国灾害通史·明代卷》永乐四年水灾条；本地文本第7065行", "该书转引《明太宗实录》卷51，永乐四年二月辛巳"],
+    "source_excerpt": "二月辛巳，宁国府宣城县民一言：县境内一十九圩近潦水，冲决堤岸二千九百余丈，恐春水泛溢，有妨农种，乞预修筑。从之。",
+    "verification_status": "needs_review",
+    "editorial_note": "已对照本地灾害通史摘录，未校核实录原本；系年对应请求与批准，不推定工程完成时间。"
+  },
+  {
+    "id": "CUR1406_05_RELIEF", "year": 1406, "month": 5,
+    "title": "常州等地水灾民饥，朝廷命给粮赈济",
+    "description": "永乐四年五月，户部报告直隶常州、安庆、庐州及六安等州县水灾、民饥。朝廷命给粮赈济，记载发粮九万六千七百五十石。",
+    "category": "fiscal", "event_type": "relief", "severity": "major",
+    "location": {"city": "常州、安庆、庐州、六安等地"},
+    "sources": ["《中国灾害通史·明代卷》永乐四年水灾条；本地文本第7107行", "该书转引《明太宗实录》卷54，永乐四年五月丁酉"],
+    "source_excerpt": "五月丁酉，户部言：直隶常州、安庆、庐州及六安等州、县水，民饥。命给米稻赈之，凡给九万六千七百五十石。",
+    "verification_status": "needs_review",
+    "editorial_note": "已对照本地灾害通史摘录，未校核实录原本；发粮数沿用引文，不推定赈济覆盖人口。"
+  },
+  {
+    "id": "CUR1406_07_JIAXING", "year": 1406, "month": 7,
+    "title": "嘉兴县水灾民饥，朝廷命发县廪赈济",
+    "description": "永乐四年七月，户部报告浙江嘉兴县水灾、民饥。朝廷命动用县廪粮食赈济。记载没有提供发粮数量。",
+    "category": "fiscal", "event_type": "relief", "severity": "major",
+    "location": {"city": "嘉兴县"},
+    "sources": ["《中国灾害通史·明代卷》永乐四年水灾条；本地文本第7119行", "该书转引《明太宗实录》卷56，永乐四年七月庚寅"],
+    "source_excerpt": "七月庚寅，户部言：浙江嘉兴县水，民饥。命发县廪赈之。",
+    "verification_status": "needs_review",
+    "editorial_note": "已对照本地灾害通史摘录，未校核实录原本；记载的是当月奏报与赈济命令，不补造发粮数量。"
   }
 ]
