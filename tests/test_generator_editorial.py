@@ -9,7 +9,7 @@ plus non-empty sources plus an explicit source_excerpt becomes historical_report
 """
 import json
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -19,6 +19,7 @@ from src.newsroom import (  # noqa: E402
     _disaster_is_precise,
     _disaster_text,
     _distinct_months,
+    EPOCH_REAL,
 )
 
 Q1 = datetime(2026, 5, 15, tzinfo=TIMEZONE_CST)   # 洪武1年1月
@@ -92,6 +93,43 @@ def test_contaminated_reign_field_is_not_used_for_month_matching():
     disaster["reign"] = "明太祖洪武元年（1368年）十一月"
     assert _disaster_is_precise(disaster)
     assert _distinct_months(_disaster_text(disaster)) == {5}
+
+
+def test_citation_only_month_and_cross_year_records_are_quarantined():
+    for description in (
+        "旱灾诏免其田租。（《明太祖实录》卷60「洪武四年正月戊申」）",
+        "正月，某地旱灾。（《明太祖实录》卷60「洪武四年正月戊申」）",
+        "某地旱灾。（《明史》1371年条）",
+    ):
+        disaster = {"year": 1370, "description": description, "sources": ["明太祖实录"]}
+        assert not _disaster_is_precise(disaster)
+        engine = make_engine(disasters=[disaster])
+        for offset in (8, 11):
+            data = issue_data(engine, EPOCH_REAL + timedelta(days=offset))
+            assert articles_of(data) == []
+            assert data["annual_events"] == []
+
+
+def test_matching_body_and_citation_dates_remain_publishable():
+    disaster = {"year": 1370, "description": "正月，某地旱灾。（《明太祖实录》洪武三年正月条）", "sources": ["明太祖实录"]}
+    assert _disaster_is_precise(disaster)
+    data = issue_data(make_engine(disasters=[disaster]), EPOCH_REAL + timedelta(days=8))
+    assert data["lead"]["time_precision"] == "month"
+    assert data["lead"]["verification_status"] == "needs_review"
+
+
+def test_real_truncated_relief_record_is_not_published_in_wrong_quarter():
+    data = issue_data(NewsroomEngine(), EPOCH_REAL + timedelta(days=8))
+    assert "洪武四年正月戊申" not in json.dumps(data, ensure_ascii=False)
+
+
+def test_1457_quarters_use_tianshun_year_one():
+    engine = NewsroomEngine()
+    for offset in range((1457 - 1368) * 4, (1458 - 1368) * 4):
+        data = issue_data(engine, EPOCH_REAL + timedelta(days=offset))
+        assert data["date"]["ming_reign"] == "天顺"
+        assert data["date"]["ming_year"] == 1
+        assert data["date"]["emperor"] == "英宗朱祁镇"
 
 
 def test_clean_sourced_legacy_disaster_stays_needs_review_and_not_ai_eligible():
@@ -315,6 +353,10 @@ def test_non_standard_window_is_rejected():
 
 
 if __name__ == "__main__":
+    test_citation_only_month_and_cross_year_records_are_quarantined()
+    test_matching_body_and_citation_dates_remain_publishable()
+    test_real_truncated_relief_record_is_not_published_in_wrong_quarter()
+    test_1457_quarters_use_tianshun_year_one()
     test_exact_month_tokens_do_not_read_november_as_january()
     test_contaminated_reign_field_is_not_used_for_month_matching()
     test_clean_sourced_legacy_disaster_stays_needs_review_and_not_ai_eligible()

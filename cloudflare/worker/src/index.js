@@ -1,7 +1,8 @@
 import { generateIssue } from "./generator.js";
 import { enhanceIssueOpinion } from "./opinion-ai.js";
 
-const CACHE_VERSION = "v5";
+const CACHE_VERSION = "v6";
+const HISTORY_CACHE_TTL_MS = 60_000;
 const AI_UPGRADE_ATTEMPTS = 2;
 const HISTORY_DATA_KEYS = {
   timeline: "data:v1:ming:timeline",
@@ -64,8 +65,8 @@ function unavailablePayload() {
   };
 }
 
-function issueCacheKey(issue) {
-  return `issue:${CACHE_VERSION}:${issue.period.start_year}:${issue.period.start_month}`;
+function issueCacheKey(issue, revision) {
+  return `issue:${CACHE_VERSION}:${issue.period.start_year}:${issue.period.start_month}:${revision}`;
 }
 
 function attachDebug(issue, debug) {
@@ -97,24 +98,34 @@ function hasAiOpinion(issue) {
   return opinion?.byline === "本报评论部" || sources.some((source) => /生成评论/.test(String(source || "")));
 }
 
-async function loadHistoryData(env) {
+async function loadHistoryData(env, options = {}) {
   const cache = env?.ISSUE_CACHE;
   if (!cache) throw new Error("History data unavailable");
-  let historyDataPromise = historyDataPromises.get(cache);
-  if (!historyDataPromise) {
-    historyDataPromise = Promise.all([
+  let entry = historyDataPromises.get(cache);
+  if (options.refresh === true || !entry || Date.now() - entry.loadedAt >= HISTORY_CACHE_TTL_MS) {
+    const promise = Promise.all([
       cache.get(HISTORY_DATA_KEYS.timeline, "json"),
       cache.get(HISTORY_DATA_KEYS.disasters, "json"),
-    ]).then(([timeline, disasters]) => {
+    ]).then(async ([timeline, disasters]) => {
       if (!Array.isArray(timeline) || !Array.isArray(disasters)) {
         throw new Error("History data unavailable");
       }
-      return { timeline, disasters };
+      const bytes = new TextEncoder().encode(JSON.stringify([timeline, disasters]));
+      const digest = await crypto.subtle.digest("SHA-256", bytes);
+      const revision = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+      return { timeline, disasters, revision };
     });
-    historyDataPromise.catch(() => historyDataPromises.delete(cache));
-    historyDataPromises.set(cache, historyDataPromise);
+    entry = { promise, loadedAt: Date.now() };
+    historyDataPromises.set(cache, entry);
+    promise.catch(() => {
+      if (historyDataPromises.get(cache)?.promise === promise) historyDataPromises.delete(cache);
+    });
   }
-  return historyDataPromise;
+  return entry.promise;
+}
+
+async function storeIssue(cache, key, issue) {
+  await cache.put(key, JSON.stringify(issue));
 }
 
 async function upgradeIssueOpinion(cache, key, baseIssue, env) {
@@ -124,7 +135,7 @@ async function upgradeIssueOpinion(cache, key, baseIssue, env) {
     const result = await enhanceIssueOpinion(baseIssue, env);
     lastResult = result;
     if (result.debug?.validationOk) {
-      await cache.put(key, JSON.stringify(result.issue));
+      await storeIssue(cache, key, result.issue);
       return { issue: result.issue, debug: result.debug, upgraded: true };
     }
   }
@@ -133,9 +144,9 @@ async function upgradeIssueOpinion(cache, key, baseIssue, env) {
 
 async function cachedIssue(env, date, options = {}) {
   const cache = env?.ISSUE_CACHE;
-  const historyData = await loadHistoryData(env);
+  const historyData = await loadHistoryData(env, { refresh: options.bypassCache === true });
   const baseIssue = generateIssue(date, historyData);
-  const key = issueCacheKey(baseIssue);
+  const key = issueCacheKey(baseIssue, historyData.revision);
   const includeDebug = options.includeDebug === true;
   const bypassCache = options.bypassCache === true;
   const waitUntil = options.waitUntil;
@@ -165,7 +176,7 @@ async function cachedIssue(env, date, options = {}) {
 
   if (bypassCache || includeDebug) {
     const { issue, debug } = await enhanceIssueOpinion(baseIssue, env);
-    await cache.put(key, JSON.stringify(issue));
+    await storeIssue(cache, key, issue);
     if (!includeDebug) return issue;
     return attachDebug(issue, {
       cache: { hit: false, bypassed: bypassCache, key, available: true },
@@ -173,7 +184,7 @@ async function cachedIssue(env, date, options = {}) {
     });
   }
 
-  await cache.put(key, JSON.stringify(baseIssue));
+  await storeIssue(cache, key, baseIssue);
   if (hasOpinionEvidence(baseIssue) && canUpgradeOpinion(env) && typeof waitUntil === "function") {
     waitUntil(upgradeIssueOpinion(cache, key, baseIssue, env));
   }
@@ -182,7 +193,7 @@ async function cachedIssue(env, date, options = {}) {
 
 async function preGenerateCurrentIssue(env, scheduledTime) {
   const date = scheduledTime ? new Date(scheduledTime + 8 * 60 * 60 * 1000).toISOString().slice(0, 10) : undefined;
-  const historyData = await loadHistoryData(env);
+  const historyData = await loadHistoryData(env, { refresh: true });
   const baseIssue = generateIssue(date, historyData);
   const cache = env?.ISSUE_CACHE;
   if (!cache) {
@@ -190,8 +201,8 @@ async function preGenerateCurrentIssue(env, scheduledTime) {
     return issue;
   }
 
-  const key = issueCacheKey(baseIssue);
-  await cache.put(key, JSON.stringify(baseIssue));
+  const key = issueCacheKey(baseIssue, historyData.revision);
+  await storeIssue(cache, key, baseIssue);
   const result = await upgradeIssueOpinion(cache, key, baseIssue, env);
   return result.upgraded ? result.issue : baseIssue;
 }

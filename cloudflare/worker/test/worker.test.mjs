@@ -10,7 +10,7 @@ const processedDisasters = JSON.parse(
   readFileSync(new URL("../../../data/processed/timeline/ming_disasters.json", import.meta.url), "utf8"),
 );
 
-const CACHE_VERSION = "v5";
+const CACHE_VERSION = "v6";
 const ARTICLE_METADATA_FIELDS = [
   "content_type",
   "time_precision",
@@ -413,13 +413,13 @@ test(`GET /api/issue/latest caches generated issues by Ming quarter under cache 
   assert.equal(first.status, 200);
   assert.equal(second.status, 200);
   assert.deepEqual(secondData, firstData);
-  assert.equal(kv.calls.get.filter((call) => call.key === `issue:${CACHE_VERSION}:1368:7`).length, 2);
-  assert.equal(kv.calls.put.filter((call) => call.key === `issue:${CACHE_VERSION}:1368:7`).length, 1);
+  assert.equal(kv.calls.get.filter((call) => call.key.startsWith(`issue:${CACHE_VERSION}:1368:7:`)).length, 2);
+  assert.equal(kv.calls.put.filter((call) => call.key.startsWith(`issue:${CACHE_VERSION}:1368:7:`)).length, 1);
 });
 
-test("GET /api/issue/latest ignores stale v4 cache entries", async () => {
+test("GET /api/issue/latest ignores stale v5 cache entries", async () => {
   const env = makeEnv({
-    "issue:v4:1368:4": JSON.stringify({
+    "issue:v5:1368:4": JSON.stringify({
       period: { start_year: 1368, start_month: 4, label: "洪武1年第2季度" },
       lead: { id: "STALE", headline: "过期缓存不应被读取", content_type: "historical_digest" },
       articles: [],
@@ -434,8 +434,130 @@ test("GET /api/issue/latest ignores stale v4 cache entries", async () => {
   assert.equal(response.status, 200);
   assert.equal(data.period.label, "洪武1年第2季度");
   assert.notEqual(data.lead?.id, "STALE");
-  assert.equal(env.ISSUE_CACHE.calls.get.some((call) => call.key === "issue:v4:1368:4"), false);
-  assert.equal(env.ISSUE_CACHE.calls.put.some((call) => call.key === `issue:${CACHE_VERSION}:1368:4`), true);
+  assert.equal(env.ISSUE_CACHE.calls.get.some((call) => call.key === "issue:v5:1368:4"), false);
+  assert.equal(env.ISSUE_CACHE.calls.put.some((call) => call.key.startsWith(`issue:${CACHE_VERSION}:1368:4:`)), true);
+});
+
+test("refresh reloads changed historical sources in an already warm Worker", async () => {
+  const env = makeEnv();
+  const request = "https://example.test/api/issue/latest?date=2026-05-15";
+  const before = await readJson(await worker.fetch(new Request(request), env));
+  assert.equal(before.lead.id, "TL1368_001");
+  await env.ISSUE_CACHE.put("data:v1:ming:timeline", JSON.stringify([
+    { id: "CORRECTED", year: 1368, month: 1, title: "订正记录", description: "正月，订正史料。" },
+  ]));
+  await env.ISSUE_CACHE.put("data:v1:ming:disasters", "[]");
+  const refreshed = await readJson(await worker.fetch(new Request(`${request}&refresh=1`), env));
+  assert.equal(refreshed.lead.id, "CORRECTED");
+  const cached = await readJson(await worker.fetch(new Request(request), env));
+  assert.deepEqual(cached, refreshed);
+});
+
+test("ordinary requests use a new cache key after the source cache expires", async () => {
+  const originalNow = Date.now;
+  let now = originalNow();
+  Date.now = () => now;
+  try {
+    const env = makeEnv();
+    const request = new Request("https://example.test/api/issue/latest?date=2026-05-15");
+    await worker.fetch(request, env);
+    await env.ISSUE_CACHE.put("data:v1:ming:timeline", JSON.stringify([
+      { id: "NEW_SOURCE", year: 1368, month: 1, title: "新增史料", description: "正月，新记录。" },
+    ]));
+    await env.ISSUE_CACHE.put("data:v1:ming:disasters", "[]");
+    now += 61_000;
+    const updated = await readJson(await worker.fetch(request, env));
+    assert.equal(updated.lead.id, "NEW_SOURCE");
+    const writes = env.ISSUE_CACHE.calls.put.filter((call) => call.key.startsWith("issue:"));
+    assert.equal(writes.length, 2);
+    assert.notEqual(writes[0].key, writes[1].key);
+  } finally {
+    Date.now = originalNow;
+  }
+});
+
+test("reloading unchanged sources reuses the cached AI opinion", async () => {
+  const originalNow = Date.now;
+  let now = originalNow();
+  Date.now = () => now;
+  try {
+    const calls = [];
+    const env = {
+      ...makeVerifiedEnv(),
+      OPENAI_API_KEY: "test-key",
+      OPENAI_FETCH: makeOpenAiFetch({ calls, body: { output_text: JSON.stringify(STUB.zhuOpenAi) } }),
+    };
+    const request = "https://example.test/api/issue/latest?date=2026-05-15";
+    const first = await readJson(await worker.fetch(new Request(`${request}&refresh=1`), env));
+    assert.ok(opinionOf(first));
+    now += 61_000;
+    const second = await readJson(await worker.fetch(new Request(request), env));
+    assert.deepEqual(second, first);
+    assert.equal(calls.length, 1);
+  } finally {
+    Date.now = originalNow;
+  }
+});
+
+test("scheduled generation reloads corrected sources even before the memory cache expires", async () => {
+  const env = makeEnv();
+  await worker.fetch(new Request("https://example.test/api/issue/latest?date=2026-05-15"), env);
+  await env.ISSUE_CACHE.put("data:v1:ming:timeline", JSON.stringify([
+    { id: "SCHEDULE_CORRECTED", year: 1368, month: 1, title: "订正史料", description: "正月，订正。" },
+  ]));
+  await env.ISSUE_CACHE.put("data:v1:ming:disasters", "[]");
+  await worker.scheduled({ scheduledTime: Date.UTC(2026, 4, 14, 16, 5) }, env);
+  const writes = env.ISSUE_CACHE.calls.put.filter((call) => call.key.startsWith(`issue:${CACHE_VERSION}:1368:1:`));
+  const cached = JSON.parse(writes.at(-1).value);
+  assert.equal(cached.lead.id, "SCHEDULE_CORRECTED");
+});
+
+test("citation-only months and conflicting citation years are quarantined", async () => {
+  for (const description of [
+    "旱灾诏免其田租。（《明太祖实录》卷60「洪武四年正月戊申」）",
+    "正月，某地旱灾。（《明太祖实录》卷60「洪武四年正月戊申」）",
+    "某地旱灾。（《明史》1371年条）",
+  ]) {
+    const env = makeEnv({
+      "data:v1:ming:timeline": "[]",
+      "data:v1:ming:disasters": JSON.stringify([
+        { year: 1370, disaster_type: "旱灾", description, sources: ["明太祖实录"] },
+      ]),
+    });
+    for (const date of ["2026-05-23", "2026-05-26"]) {
+      const issue = await readJson(await worker.fetch(new Request(`https://example.test/api/issue/latest?date=${date}`), env));
+      assert.equal(issue.lead, null);
+      assert.deepEqual(issue.articles, []);
+      assert.deepEqual(issue.annual_events, []);
+    }
+  }
+});
+
+test("a complete disaster with matching body and citation dates remains publishable", async () => {
+  const env = makeEnv({
+    "data:v1:ming:timeline": "[]",
+    "data:v1:ming:disasters": JSON.stringify([
+      { year: 1370, disaster_type: "旱灾", location: "某地", description: "正月，某地旱灾。（《明太祖实录》洪武三年正月条）", sources: ["明太祖实录"] },
+    ]),
+  });
+  const issue = await readJson(await worker.fetch(new Request("https://example.test/api/issue/latest?date=2026-05-23"), env));
+  assert.equal(issue.lead.time_precision, "month");
+  assert.equal(issue.lead.verification_status, "needs_review");
+});
+
+test("the real truncated relief record is never published in Hongwu year three Q1", async () => {
+  const issue = await readJson(await worker.fetch(new Request("https://example.test/api/issue/latest?date=2026-05-23"), makeEnv()));
+  assert.doesNotMatch(JSON.stringify(issue), /洪武四年正月戊申/);
+});
+
+test("1457 quarters use Tianshun year one rather than the overlapping Jingtai range", async () => {
+  for (const date of ["2027-05-06", "2027-05-07", "2027-05-08", "2027-05-09"]) {
+    const issue = await readJson(await worker.fetch(new Request(`https://example.test/api/issue/latest?date=${date}`), makeEnv()));
+    assert.equal(issue.period.start_year, 1457);
+    assert.equal(issue.date.ming_reign, "天顺");
+    assert.equal(issue.date.ming_year, 1);
+    assert.equal(issue.date.emperor, "英宗朱祁镇");
+  }
 });
 
 test("GET /api/issue/latest skips AI and emits no opinion when no fact is verified", async () => {
@@ -921,7 +1043,7 @@ test("scheduled pre-generates the next Beijing date's issue in KV", async () => 
   });
   await Promise.all(waitUntilCalls);
 
-  const issueWrites = kv.calls.put.filter((call) => call.key === `issue:${CACHE_VERSION}:1368:10`);
+  const issueWrites = kv.calls.put.filter((call) => call.key.startsWith(`issue:${CACHE_VERSION}:1368:10:`));
   assert.equal(issueWrites.length, 1);
   const cached = JSON.parse(issueWrites[0].value);
   assert.equal(cached.period.label, "洪武1年第4季度");

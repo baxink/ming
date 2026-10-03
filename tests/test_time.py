@@ -34,6 +34,9 @@ def test_reign_titles():
     assert get_reign_title(1644)["title"] == "崇祯"
     assert get_reign_title(1367) is None
     assert get_reign_title(1645) is None
+    assert get_reign_title(1456)["title"] == "景泰"
+    assert get_reign_title(1457)["title"] == "天顺"
+    assert from_gregorian(1457).reign_year == 1
     print("✓ 年号映射正确")
 
 

@@ -283,6 +283,10 @@ function renderNewspaper(issue) {
 }
 
 function configuredIssueUrls() {
+  const location = window.location || {};
+  if (location.protocol === 'file:' || ['localhost', '127.0.0.1', '[::1]', '::1'].includes(location.hostname)) {
+    return ['data/issue.json'];
+  }
   const config = window.MING_POST_CONFIG || {};
   const apiBaseUrl = String(config.apiBaseUrl || '').replace(/\/+$/, '');
   const urls = [];

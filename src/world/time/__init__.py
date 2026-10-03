@@ -110,7 +110,7 @@ REIGN_PERIODS = [
     {"title": "洪熙", "start": 1425, "end": 1425, "emperor": "朱高炽"},
     {"title": "宣德", "start": 1426, "end": 1435, "emperor": "朱瞻基"},
     {"title": "正统", "start": 1436, "end": 1449, "emperor": "朱祁镇"},
-    {"title": "景泰", "start": 1450, "end": 1457, "emperor": "朱祁钰"},
+    {"title": "景泰", "start": 1450, "end": 1456, "emperor": "朱祁钰"},
     {"title": "天顺", "start": 1457, "end": 1464, "emperor": "朱祁镇"},
     {"title": "成化", "start": 1465, "end": 1487, "emperor": "朱见深"},
     {"title": "弘治", "start": 1488, "end": 1505, "emperor": "朱祐樘"},

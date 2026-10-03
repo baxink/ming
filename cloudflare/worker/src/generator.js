@@ -14,7 +14,7 @@ const REIGN_PERIODS = [
   [1425, 1425, "洪熙", "仁宗朱高炽"],
   [1426, 1435, "宣德", "宣宗朱瞻基"],
   [1436, 1449, "正统", "英宗朱祁镇"],
-  [1450, 1457, "景泰", "代宗朱祁钰"],
+  [1450, 1456, "景泰", "代宗朱祁钰"],
   [1457, 1464, "天顺", "英宗朱祁镇"],
   [1465, 1487, "成化", "宪宗朱见深"],
   [1488, 1505, "弘治", "孝宗朱祐樘"],
@@ -228,14 +228,36 @@ function disasterIsPrecise(disaster) {
   if (!completeSources(disaster.sources)) return false;
   const text = disasterText(disaster);
   if (hasMultiRecordMarkers(text) || hasDanglingSource(text) || !disasterHasCompleteDescription(disaster)) return false;
-  return distinctMonths(text).size === 1;
+  if (hasConflictingSourceYear(disaster)) return false;
+  // Citation dates may refer to a later relief order, not the disaster itself.
+  const eventText = text.replace(CITATION_RE, "");
+  return distinctMonths(text).size === 1 && distinctMonths(eventText).size === 1;
 }
 
 function disasterHasCompleteDescription(disaster) {
   return /[。！？.!?）)]$/.test(String(disaster.description || "").trim());
 }
 
-const CITATION_RE = /[（(]《[^》]*》[^）)]*[）)]/;
+const CITATION_RE = /[（(]《[^》]*》[^）)]*[）)]/g;
+const REIGN_YEAR_RE = new RegExp(`(${REIGN_PERIODS.map((period) => period[2]).join("|")})([元一二三四五六七八九十]+)年`, "g");
+const CHINESE_DIGITS = { 元: 1, 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
+
+function hasConflictingSourceYear(disaster) {
+  const starts = Object.fromEntries(REIGN_PERIODS.map((period) => [period[2], period[0]]));
+  const text = disasterText(disaster);
+  const years = [...text.matchAll(/(?<!\d)(\d{4})年/g)].map((match) => Number(match[1]));
+  for (const [, title, numeral] of text.matchAll(REIGN_YEAR_RE)) {
+    let number;
+    if (numeral.includes("十")) {
+      const [tens, ones] = numeral.split("十");
+      number = (CHINESE_DIGITS[tens] ?? 1) * 10 + (CHINESE_DIGITS[ones] ?? 0);
+    } else {
+      number = CHINESE_DIGITS[numeral];
+    }
+    if (number != null) years.push(starts[title] + number - 1);
+  }
+  return years.some((year) => year !== disaster.year);
+}
 
 // Verification must be asserted by the input, never inferred from a clean parse.
 function explicitVerified(record) {
@@ -444,7 +466,7 @@ function annualEvents(period, timeline, disasters) {
   for (const disaster of disasters) {
     if (disaster.year !== year || disasterIsPrecise(disaster)) continue;
     const text = disasterText(disaster);
-    if (hasMultiRecordMarkers(text) || hasDanglingSource(text) || distinctMonths(text).size > 0 || !disasterHasCompleteDescription(disaster)) continue;
+    if (hasMultiRecordMarkers(text) || hasDanglingSource(text) || distinctMonths(text).size > 0 || hasConflictingSourceYear(disaster) || !disasterHasCompleteDescription(disaster)) continue;
     events.push(disasterToArticle(disaster, seq, 0, false));
     seq += 1;
   }

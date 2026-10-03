@@ -40,6 +40,24 @@ const BASE_ISSUE = {
   },
 };
 
+test("local preview uses the generated file even when the online API is configured", () => {
+  for (const hostname of ["127.0.0.1", "localhost", "[::1]"]) {
+    const renderer = loadNewsRenderer({ window: {
+      location: { protocol: "http:", hostname },
+      MING_POST_CONFIG: { apiBaseUrl: "https://example.test" },
+    } });
+    assert.equal(JSON.stringify(renderer.configuredIssueUrls()), '["data/issue.json"]');
+  }
+});
+
+test("published frontend retains the configured online API", () => {
+  const renderer = loadNewsRenderer({ window: {
+    location: { protocol: "https:", hostname: "baxink.github.io" },
+    MING_POST_CONFIG: { apiBaseUrl: "https://example.test/" },
+  } });
+  assert.equal(JSON.stringify(renderer.configuredIssueUrls()), '["https://example.test/api/issue/latest"]');
+});
+
 test("createArticleHTML removes dangling source fragments from API bodies", () => {
   const { createArticleHTML } = loadNewsRenderer();
   const html = createArticleHTML({

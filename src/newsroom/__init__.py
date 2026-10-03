@@ -31,7 +31,7 @@ REIGN_PERIODS = [
     (1425, 1425, "洪熙", "仁宗朱高炽"),
     (1426, 1435, "宣德", "宣宗朱瞻基"),
     (1436, 1449, "正统", "英宗朱祁镇"),
-    (1450, 1457, "景泰", "代宗朱祁钰"),
+    (1450, 1456, "景泰", "代宗朱祁钰"),
     (1457, 1464, "天顺", "英宗朱祁镇"),
     (1465, 1487, "成化", "宪宗朱见深"),
     (1488, 1505, "弘治", "孝宗朱祐樘"),
@@ -294,7 +294,11 @@ def _disaster_is_precise(disaster: dict) -> bool:
     text = _disaster_text(disaster)
     if _has_multi_record_markers(text) or _has_dangling_source(text) or not _disaster_has_complete_description(disaster):
         return False
-    return len(_distinct_months(text)) == 1
+    if _has_conflicting_source_year(disaster):
+        return False
+    # Citation dates may refer to a later relief order, not the disaster itself.
+    event_text = _CITATION_RE.sub("", text)
+    return len(_distinct_months(text)) == 1 and len(_distinct_months(event_text)) == 1
 
 
 def _disaster_has_complete_description(disaster: dict) -> bool:
@@ -303,6 +307,26 @@ def _disaster_has_complete_description(disaster: dict) -> bool:
 
 
 _CITATION_RE = re.compile(r"[（(]《[^》]*》[^）)]*[）)]")
+_REIGN_YEAR_RE = re.compile(
+    r"(" + "|".join(period[2] for period in REIGN_PERIODS) + r")([元一二三四五六七八九十]+)年"
+)
+_CHINESE_DIGITS = {"元": 1, "一": 1, "二": 2, "三": 3, "四": 4, "五": 5,
+                   "六": 6, "七": 7, "八": 8, "九": 9}
+
+
+def _has_conflicting_source_year(disaster: dict) -> bool:
+    starts = {period[2]: period[0] for period in REIGN_PERIODS}
+    text = _disaster_text(disaster)
+    years = {int(year) for year in re.findall(r"(?<!\d)(\d{4})年", text)}
+    for title, numeral in _REIGN_YEAR_RE.findall(text):
+        if "十" in numeral:
+            tens, ones = numeral.split("十", 1)
+            number = _CHINESE_DIGITS.get(tens, 1) * 10 + _CHINESE_DIGITS.get(ones, 0)
+        else:
+            number = _CHINESE_DIGITS.get(numeral)
+        if number is not None:
+            years.add(starts[title] + number - 1)
+    return any(year != disaster.get("year") for year in years)
 
 
 def _explicit_verified(record: dict) -> bool:
@@ -604,7 +628,7 @@ class NewsroomEngine:
             if d.get("year", 0) != year or _disaster_is_precise(d):
                 continue
             text = _disaster_text(d)
-            if _has_multi_record_markers(text) or _has_dangling_source(text) or _distinct_months(text) or not _disaster_has_complete_description(d):
+            if _has_multi_record_markers(text) or _has_dangling_source(text) or _distinct_months(text) or _has_conflicting_source_year(d) or not _disaster_has_complete_description(d):
                 continue
             events.append(_disaster_to_article(d, seq, 0, precise=False))
             seq += 1
